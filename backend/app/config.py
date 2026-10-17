@@ -75,5 +75,8 @@ def load_settings() -> Settings:
         max_completion_tokens=int(os.getenv("MAX_COMPLETION_TOKENS", "2000")),
         data_cache_dir=_resolve_path(os.getenv("DATA_CACHE_DIR", "data/cache")),
         results_dir=_resolve_path(os.getenv("RESULTS_DIR", "results")),
-        cors_origins=_split_csv(os.getenv("CORS_ORIGINS", "http://localhost:3000")),
+        cors_origins=_split_csv(
+            os.getenv("CORS_ORIGINS", "").strip()
+            or "http://localhost:3000,http://127.0.0.1:3000"
+        ),
     )

@@ -312,12 +312,14 @@ function Tile({ label, value, strong }: { label: string; value: string; strong?:
 function AccuracyChart({ results }: { results: ResultEvent[] }) {
   const width = 600;
   const height = 120;
+  const pad = 4;
   const points = useMemo(() => {
     if (results.length < 2) return "";
     return results
       .map((r, i) => {
         const x = (i / (results.length - 1)) * width;
-        const y = height - r.accuracy * height;
+        // Keep 0% and 100% inside the plot area, so the line stays visible.
+        const y = pad + (1 - r.accuracy) * (height - 2 * pad);
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       })
       .join(" ");
