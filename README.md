@@ -49,12 +49,17 @@ Main settings in `.env`:
 In two terminals, from the repository root:
 
 ```bash
-conda run --no-capture-output -n global-mmlu uvicorn app.main:app --app-dir backend --port 8000
+backend/start.sh
 ```
 
 ```bash
-npm --prefix frontend run dev
+frontend/start.sh
 ```
+
+Stop each server with `Ctrl+C`. `backend/start.sh --reload` restarts the
+backend when Python code changes (edits to `.env` still need a manual
+restart). Optional variables: `CONDA_ENV`, `HOST`, and `PORT` for the backend,
+`PORT` for the UI (add a new UI origin to `CORS_ORIGINS`).
 
 Open <http://localhost:3000>, choose model, language, and number of
 questions, and press **Start evaluation**. Set a seed to reuse the same
