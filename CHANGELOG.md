@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+* 2026-10-17: Dataset selection: Global-MMLU or Global-MMLU-Lite (adds
+  Albanian and six other languages). Cached files move to
+  `data/cache/<dataset>/`; files in the old location are downloaded again.
 * 2026-10-17: Reasoning effort per run (UI selector and API field), not sent
   by default; `openai.*` models no longer get a forced `LOW`. A request
   rejected with HTTP 400 stops the run with the service error.

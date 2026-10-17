@@ -1,11 +1,16 @@
 # Global-MMLU multilingual evaluation
 
 Local tool to measure how well an LLM on OCI Generative AI answers
+multiple-choice questions in many languages, using
 [Global-MMLU](https://huggingface.co/datasets/CohereLabs/Global-MMLU)
-questions in each of its 42 languages.
+(42 languages, 14,327 test questions each) or
+[Global-MMLU-Lite](https://huggingface.co/datasets/CohereLabs/Global-MMLU-Lite)
+(23 languages, 400 test questions each, balanced between culturally sensitive
+and culturally agnostic questions). Lite also covers languages missing from
+the full set: Albanian, Burmese, Hungarian, Odia, Slovak, Tajik, and Welsh.
 
-From a local web UI you pick the model, the language, and the number of
-questions. The backend samples that many random questions from the
+From a local web UI you pick the model, the dataset, the language, and the
+number of questions. The backend samples that many random questions from the
 language's `test` split, asks the model, and streams progress and running
 accuracy back to the UI.
 
@@ -95,20 +100,23 @@ Open <http://localhost:3000>, choose model, language, and number of
 questions, and press **Start evaluation**. Set a seed to reuse the same
 sample across models. **Stop** ends the run; results received so far are kept.
 
-The first run of a language downloads its Parquet file (about 5 MB) into
-`data/cache/`. Each run is saved as JSON in `results/`.
+The first run of a language downloads its Parquet file (a few MB, less for
+Lite) into `data/cache/<dataset>/`. Each run is saved as JSON in `results/`.
+With Lite, 400 questions give a margin of error of about ±4–5 points (95%).
 
 ## API
 
 ```bash
 curl -N -X POST http://localhost:8000/api/evaluations \
   -H 'Content-Type: application/json' \
-  -d '{"model_id": "openai.gpt-5.6-luna", "language": "it", "num_questions": 5, "seed": 42}'
+  -d '{"model_id": "openai.gpt-5.6-luna", "dataset": "global-mmlu-lite", "language": "sq", "num_questions": 5, "seed": 42}'
 ```
+
+`dataset` is `global-mmlu` (default) or `global-mmlu-lite`.
 
 The response is an SSE stream of `status`, `start`, `result`, and `done`
 events (see the specification). Other endpoints: `GET /api/models`,
-`GET /api/languages`, `GET /api/health`.
+`GET /api/datasets`, `GET /api/languages?dataset=...`, `GET /api/health`.
 
 ## Checks
 

@@ -2,7 +2,7 @@
 Author: L. Saetta
 Date last modified: 2026-10-17
 License: MIT
-Description: Global-MMLU access: per-language Parquet download, local cache, and seeded sampling.
+Description: Global-MMLU and Global-MMLU-Lite access: per-language download, cache, sampling.
 """
 
 import logging
@@ -15,13 +15,12 @@ import pyarrow.parquet as pq
 
 logger = logging.getLogger(__name__)
 
-DATASET_ID = "CohereLabs/Global-MMLU"
 PARQUET_INDEX_URL = "https://huggingface.co/api/datasets/{dataset}/parquet/{config}"
 SPLIT = "test"
 DOWNLOAD_TIMEOUT_S = 120.0
 
-# Configs of the dataset (verified 2026-10-17) with their English names.
-LANGUAGES: dict[str, str] = {
+# English names of the language codes used by the supported datasets.
+LANGUAGE_NAMES: dict[str, str] = {
     "am": "Amharic",
     "ar": "Arabic",
     "bn": "Bengali",
@@ -64,7 +63,51 @@ LANGUAGES: dict[str, str] = {
     "vi": "Vietnamese",
     "yo": "Yoruba",
     "zh": "Chinese",
+    "cy": "Welsh",
+    "hu": "Hungarian",
+    "my": "Burmese",
+    "or": "Odia",
+    "sk": "Slovak",
+    "sq": "Albanian",
+    "tg": "Tajik",
 }
+
+
+@dataclass(frozen=True)
+class DatasetInfo:
+    """A supported dataset: Hugging Face ID, languages (configs), and test size."""
+
+    key: str
+    name: str
+    hf_id: str
+    languages: tuple[str, ...]
+    test_rows: int
+
+
+# Configs and test-split sizes verified 2026-10-17 with the dataset viewer API.
+# Both datasets share the same columns (see COLUMNS).
+DATASETS: dict[str, DatasetInfo] = {
+    "global-mmlu": DatasetInfo(
+        key="global-mmlu",
+        name="Global-MMLU",
+        hf_id="CohereLabs/Global-MMLU",
+        languages=tuple(
+            "am ar bn cs de el en es fa fil fr ha he hi id ig it ja ko ky lt mg ms "
+            "ne nl ny pl pt ro ru si sn so sr sv sw te tr uk vi yo zh".split()
+        ),
+        test_rows=14327,
+    ),
+    "global-mmlu-lite": DatasetInfo(
+        key="global-mmlu-lite",
+        name="Global-MMLU-Lite",
+        hf_id="CohereLabs/Global-MMLU-Lite",
+        languages=tuple(
+            "ar bn cs cy de en es fr hi hu id it ja ko my or pt sk sq sw tg yo zh".split()
+        ),
+        test_rows=400,
+    ),
+}
+DEFAULT_DATASET = "global-mmlu"
 
 COLUMNS = [
     "sample_id",
@@ -97,13 +140,16 @@ class Question:
     cultural_sensitivity_label: str
 
 
-def cache_path(cache_dir: Path, language: str) -> Path:
-    """Return the local Parquet path of a language's test split."""
-    return cache_dir / f"{language}-{SPLIT}.parquet"
+def cache_path(cache_dir: Path, dataset: DatasetInfo, language: str) -> Path:
+    """Return the local Parquet path of a language's test split in a dataset."""
+    return cache_dir / dataset.key / f"{language}-{SPLIT}.parquet"
 
 
 def ensure_language_file(
-    language: str, cache_dir: Path, client: httpx.Client | None = None
+    dataset: DatasetInfo,
+    language: str,
+    cache_dir: Path,
+    client: httpx.Client | None = None,
 ) -> Path:
     """Download the test-split Parquet file of a language unless already cached.
 
@@ -111,29 +157,30 @@ def ensure_language_file(
     download never leaves a partial file in the cache.
 
     Args:
+        dataset: dataset to read from.
         language: dataset config code, for example ``"it"``.
-        cache_dir: directory holding cached Parquet files.
+        cache_dir: directory holding cached Parquet files (one subfolder per dataset).
         client: optional HTTP client (injected by tests).
 
     Returns:
         Path: path of the cached Parquet file.
 
     Raises:
-        ValueError: if the language is not supported.
+        ValueError: if the dataset does not have the language.
         DatasetError: if the download fails.
     """
-    if language not in LANGUAGES:
-        raise ValueError(f"Unsupported language: {language}")
-    target = cache_path(cache_dir, language)
+    if language not in dataset.languages:
+        raise ValueError(f"{dataset.name} does not include language: {language}")
+    target = cache_path(cache_dir, dataset, language)
     if target.exists():
         return target
 
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    target.parent.mkdir(parents=True, exist_ok=True)
     own_client = client is None
     http = client or httpx.Client(timeout=DOWNLOAD_TIMEOUT_S, follow_redirects=True)
     tmp = target.with_suffix(".parquet.part")
     try:
-        index_url = PARQUET_INDEX_URL.format(dataset=DATASET_ID, config=language)
+        index_url = PARQUET_INDEX_URL.format(dataset=dataset.hf_id, config=language)
         index = http.get(index_url)
         index.raise_for_status()
         urls = index.json().get(SPLIT) or []
@@ -141,7 +188,9 @@ def ensure_language_file(
             raise DatasetError(
                 f"Expected one Parquet file for {language}/{SPLIT}, found {len(urls)}."
             )
-        logger.info("Downloading %s/%s from %s", language, SPLIT, urls[0])
+        logger.info(
+            "Downloading %s %s/%s from %s", dataset.name, language, SPLIT, urls[0]
+        )
         with http.stream("GET", urls[0]) as response:
             response.raise_for_status()
             with tmp.open("wb") as handle:

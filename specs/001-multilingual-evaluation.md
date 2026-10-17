@@ -1,4 +1,4 @@
-# Spec 001: Multilingual LLM evaluation with Global-MMLU
+# Spec 001: Multilingual LLM evaluation with Global-MMLU and Global-MMLU-Lite
 
 Status: implemented; locally tested and live-verified on OCI (see Verification).
 
@@ -12,12 +12,13 @@ is in progress.
 ## Scope
 
 * A local Python backend (FastAPI) that:
-  * lists the supported languages and the configured models;
-  * samples N random questions of one language from the `test` split;
+  * lists the configured models and the supported datasets with their languages;
+  * samples N random questions of one language from the `test` split of the
+    selected dataset (Global-MMLU or Global-MMLU-Lite);
   * calls the selected model once per question and grades the answer;
   * streams progress and running accuracy to the client (Server-Sent Events);
   * saves each completed run as a JSON file.
-* A local Next.js UI to select model, language, and number of questions,
+* A local Next.js UI to select model, dataset, language, and number of questions,
   start and stop a run, and watch progress, accuracy, and per-question results.
 
 ## Non-goals (for now)
@@ -54,8 +55,23 @@ Verified 2026-10-17 against the Hugging Face Hub and dataset viewer APIs:
 * Parquet file URLs per config and split come from
   `GET https://huggingface.co/api/datasets/CohereLabs/Global-MMLU/parquet/{config}`.
 
-Decision: download only the Parquet file of the selected language on first
-use and cache it under `DATA_CACHE_DIR`. Rationale: a few MB per language,
+Global-MMLU-Lite, verified 2026-10-17 with the same APIs:
+
+* Dataset `CohereLabs/Global-MMLU-Lite`, license Apache-2.0, not gated, same
+  columns as Global-MMLU.
+* 23 configs: ar bn cs cy de en es fr hi hu id it ja ko my or pt sk sq sw tg
+  yo zh. `cy`, `hu`, `my`, `or`, `sk`, `sq` (Albanian), and `tg` are not in
+  Global-MMLU.
+* Each config has a `test` split of 400 rows (for `sq`, checked: 200 `CS`,
+  200 `CA`); `cy` has no `dev` split.
+
+Global-MMLU has no Albanian config. Other sources checked on 2026-10-17:
+`openai/MMMLU` (15 configs, no Albanian) and INCLUDE
+(`CohereLabs/include-base-44`, config `Albanian`, 551 test rows, regional exam
+questions with a different schema); INCLUDE is not supported yet.
+
+Decision: download only the Parquet file of the selected dataset and language
+on first use and cache it under `DATA_CACHE_DIR/<dataset key>/`. Rationale: a few MB per language,
 exact uniform sampling, reproducible samples with a seed, and offline reruns.
 Row-level streaming via the dataset viewer `/rows` API was rejected because
 it needs one request per question and depends on rate limits.
@@ -131,25 +147,29 @@ API (all JSON, base `http://localhost:8000`):
 | --- | --- | --- |
 | GET | `/api/health` | `{"status": "ok"}` |
 | GET | `/api/models` | configured model IDs and the default |
-| GET | `/api/languages` | language codes and English names |
+| GET | `/api/datasets` | dataset keys, names, test-split sizes, and languages |
+| GET | `/api/languages?dataset=<key>` | language codes and English names of a dataset |
 | POST | `/api/evaluations` | SSE stream of a run |
 
 `POST /api/evaluations` body: `model_id`, `language`, `num_questions`
-(1–`MAX_QUESTIONS`), optional `seed`, optional `reasoning_effort`. Unknown
-model, language, or effort returns 422 before any remote call.
+(1 to the smaller of `MAX_QUESTIONS` and the dataset's test size), optional
+`dataset` (`global-mmlu`, the default, or `global-mmlu-lite`), optional `seed`,
+optional `reasoning_effort`. An unknown model, dataset, or effort, or a
+language the dataset does not have, returns 422 before any remote call.
 `GET /api/models` also returns the allowed `reasoning_efforts`.
 
 SSE events (`data:` lines carrying JSON with a `type` field):
 
 * `status`: preparation messages (for example dataset download).
-* `start`: `run_id`, `seed`, `total`, `model_id`, `reasoning_effort`, `language`.
+* `start`: `run_id`, `seed`, `total`, `model_id`, `reasoning_effort`,
+  `dataset`, `language`.
 * `result`: one per question, in completion order: `index`, `sample_id`,
   `subject`, `subject_category`, `cultural_sensitivity_label`, `expected`,
   `predicted`, `correct`, `invalid`, `latency_s`, `error`, plus running
   `completed`, `correct_count`, and `accuracy`.
 * `done`: final summary with overall accuracy, accuracy by
   `subject_category` and by cultural sensitivity label, invalid and error
-  counts, mean latency, `reasoning_effort`, `model_target`, `stopped: false`,
+  counts, mean latency, `dataset`, `reasoning_effort`, `model_target`, `stopped: false`,
   and the path of the saved result file.
 * `error`: fatal error, including a request rejected with HTTP 400; the
   stream ends.
@@ -220,6 +240,14 @@ Reasoning effort, API, 2026-10-17:
 | Same sample, `NONE` | 37/50 (0.74), 0 invalid, mean latency 0.26 s, max 1.5 s |
 | `openai.gpt-4.1`, `LOW`, N=20 | `start` then `error` with the service's HTTP 400 message; no results |
 | `openai.gpt-4.1`, not sent, N=3 | 3/3, no errors |
+
+Dataset selection, 2026-10-17:
+
+| Check | Observed |
+| --- | --- |
+| API, Lite, `sq`, N=20, seed 42, `openai.gpt-5.6-luna` | status (Lite download), 20 results, 18/20 (0.90); file in `data/cache/global-mmlu-lite/` |
+| API, Global-MMLU, `sq` | 422 |
+| UI, Lite, `sq`, N=10 | selector shows 23 languages and max 400; 8/10; title shows the dataset |
 
 Mean latency was about 1.0–1.1 s per call on demand. These are single runs on small
 samples: they verify the mechanism, not the model's accuracy.

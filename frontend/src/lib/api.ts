@@ -11,6 +11,14 @@ export interface Language {
   name: string;
 }
 
+export interface DatasetInfo {
+  key: string;
+  name: string;
+  hf_id: string;
+  test_rows: number;
+  languages: Language[];
+}
+
 export interface ModelCatalog {
   models: string[];
   default: string;
@@ -48,6 +56,7 @@ export interface StartEvent {
   run_id: string;
   model_id: string;
   reasoning_effort: string | null;
+  dataset: string;
   language: string;
   seed: number;
   total: number;
@@ -57,6 +66,7 @@ export interface DoneEvent extends Tally {
   type: "done";
   run_id: string;
   reasoning_effort: string | null;
+  dataset: string;
   seed: number;
   requested: number;
   completed: number;
@@ -77,6 +87,7 @@ export type EvaluationEvent =
 
 export interface EvaluationRequest {
   model_id: string;
+  dataset: string;
   language: string;
   num_questions: number;
   seed?: number;
@@ -94,8 +105,8 @@ async function getJson<T>(path: string): Promise<T> {
 
 export const fetchModels = () => getJson<ModelCatalog>("/api/models");
 
-export const fetchLanguages = () =>
-  getJson<{ languages: Language[] }>("/api/languages").then((r) => r.languages);
+export const fetchDatasets = () =>
+  getJson<{ default: string; datasets: DatasetInfo[] }>("/api/datasets");
 
 /**
  * Start an evaluation and call `onEvent` for every SSE message until the

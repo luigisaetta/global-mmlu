@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Main screen: run setup (model, language, number of questions, optional
- * seed), live progress and accuracy, per-question results, and the final
+ * Main screen: run setup (model, reasoning effort, dataset, language, number
+ * of questions, optional seed), live progress and accuracy, per-question results, and the final
  * breakdown by subject category and cultural sensitivity.
  */
 
@@ -10,13 +10,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   API_BASE_URL,
+  DatasetInfo,
   DoneEvent,
   EvaluationEvent,
   Language,
   ResultEvent,
   StartEvent,
   Tally,
-  fetchLanguages,
+  fetchDatasets,
   fetchModels,
   streamEvaluation,
 } from "@/lib/api";
@@ -31,10 +32,11 @@ export default function Evaluator() {
   const [models, setModels] = useState<string[]>([]);
   const [efforts, setEfforts] = useState<string[]>([]);
   const [region, setRegion] = useState("");
-  const [languages, setLanguages] = useState<Language[]>([]);
+  const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
   const [modelId, setModelId] = useState("");
+  const [datasetKey, setDatasetKey] = useState("");
   const [language, setLanguage] = useState("it");
   const [numQuestions, setNumQuestions] = useState(50);
   const [seed, setSeed] = useState("");
@@ -50,13 +52,14 @@ export default function Evaluator() {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchModels(), fetchLanguages()])
-      .then(([catalog, langs]) => {
+    Promise.all([fetchModels(), fetchDatasets()])
+      .then(([catalog, datasetCatalog]) => {
         setModels(catalog.models);
         setModelId(catalog.default);
         setRegion(catalog.region);
         setEfforts(catalog.reasoning_efforts ?? []);
-        setLanguages(langs);
+        setDatasets(datasetCatalog.datasets);
+        setDatasetKey(datasetCatalog.default);
       })
       .catch((error: Error) =>
         setCatalogError(
@@ -64,6 +67,22 @@ export default function Evaluator() {
         ),
       );
   }, []);
+
+  const dataset = datasets.find((d) => d.key === datasetKey);
+  const languages: Language[] = dataset?.languages ?? [];
+  const maxQuestions = dataset?.test_rows ?? 1;
+
+  // Keep the language if the new dataset has it, else fall back to English.
+  function selectDataset(key: string) {
+    setDatasetKey(key);
+    const next = datasets.find((d) => d.key === key);
+    if (next && !next.languages.some((l) => l.code === language)) {
+      setLanguage(
+        next.languages.some((l) => l.code === "en") ? "en" : next.languages[0].code,
+      );
+    }
+    if (next && numQuestions > next.test_rows) setNumQuestions(next.test_rows);
+  }
 
   const running = phase === "preparing" || phase === "running";
   const latest = results.at(-1);
@@ -76,7 +95,8 @@ export default function Evaluator() {
     ? results.reduce((sum, r) => sum + r.latency_s, 0) / results.length
     : 0;
   const languageName = (code: string) =>
-    languages.find((l) => l.code === code)?.name ?? code;
+    datasets.flatMap((d) => d.languages).find((l) => l.code === code)?.name ?? code;
+  const datasetName = (key: string) => datasets.find((d) => d.key === key)?.name ?? key;
 
   function handleEvent(event: EvaluationEvent) {
     switch (event.type) {
@@ -115,6 +135,7 @@ export default function Evaluator() {
       await streamEvaluation(
         {
           model_id: modelId,
+          dataset: datasetKey,
           language,
           num_questions: numQuestions,
           ...(seed.trim() ? { seed: Number(seed) } : {}),
@@ -142,7 +163,13 @@ export default function Evaluator() {
 
   const seedValid = seed.trim() === "" || /^\d+$/.test(seed.trim());
   const canStart =
-    !running && !!modelId && !!language && numQuestions >= 1 && seedValid;
+    !running &&
+    !!modelId &&
+    !!dataset &&
+    !!language &&
+    numQuestions >= 1 &&
+    numQuestions <= maxQuestions &&
+    seedValid;
 
   return (
     <main className="page">
@@ -150,8 +177,8 @@ export default function Evaluator() {
         <div>
           <h1>Global-MMLU multilingual evaluation</h1>
           <p className="muted">
-            Random questions from the <code>CohereLabs/Global-MMLU</code> test split,
-            answered by an OCI Generative AI model
+            Random questions from the <code>{dataset?.hf_id ?? "CohereLabs/Global-MMLU"}</code>{" "}
+            test split, answered by an OCI Generative AI model
             {region ? ` in ${region}` : ""}.
           </p>
         </div>
@@ -197,6 +224,27 @@ export default function Evaluator() {
           </label>
 
           <label>
+            Dataset
+            <select
+              value={datasetKey}
+              onChange={(e) => selectDataset(e.target.value)}
+              disabled={running || datasets.length === 0}
+            >
+              {datasets.map((d) => (
+                <option key={d.key} value={d.key}>
+                  {d.name} ({d.languages.length} languages)
+                </option>
+              ))}
+            </select>
+            {dataset && (
+              <span className="hint">
+                {dataset.hf_id} · {dataset.test_rows.toLocaleString("en-US")} test
+                questions per language
+              </span>
+            )}
+          </label>
+
+          <label>
             Language
             <select
               value={language}
@@ -214,17 +262,19 @@ export default function Evaluator() {
           </label>
 
           <label>
-            Number of questions
+            Number of questions <span className="muted">(max {maxQuestions})</span>
             <input
               type="number"
               min={1}
+              max={maxQuestions}
               value={numQuestions}
               onChange={(e) => setNumQuestions(Math.max(1, Number(e.target.value) || 1))}
               disabled={running}
+              aria-invalid={numQuestions > maxQuestions}
             />
           </label>
           <div className="presets">
-            {QUESTION_PRESETS.map((n) => (
+            {QUESTION_PRESETS.filter((n) => n <= maxQuestions).map((n) => (
               <button
                 key={n}
                 type="button"
@@ -271,7 +321,7 @@ export default function Evaluator() {
             <div className="run-title">
               <h2>
                 {start
-                  ? `${start.model_id} · ${languageName(start.language)}`
+                  ? `${start.model_id} · ${datasetName(start.dataset)} · ${languageName(start.language)}`
                   : "Progress"}
               </h2>
               <span className={`badge ${phase}`}>{phase}</span>

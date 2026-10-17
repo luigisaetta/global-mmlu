@@ -60,6 +60,7 @@ class RunConfig:  # pylint: disable=too-many-instance-attributes
     results_dir: Path
     model_target: str = ""
     reasoning_effort: str | None = None
+    dataset: str = "global-mmlu"
 
     @property
     def target(self) -> str:
@@ -162,6 +163,7 @@ def _summary(config: RunConfig, state: _RunState, total: int) -> dict:
         "model_id": config.model_id,
         "model_target": config.target,
         "reasoning_effort": config.reasoning_effort,
+        "dataset": config.dataset,
         "language": config.language,
         "seed": config.seed,
         "requested": total,
@@ -218,6 +220,7 @@ async def run_evaluation(
         "run_id": config.run_id,
         "model_id": config.model_id,
         "reasoning_effort": config.reasoning_effort,
+        "dataset": config.dataset,
         "language": config.language,
         "seed": config.seed,
         "total": total,

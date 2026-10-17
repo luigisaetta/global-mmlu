@@ -2,7 +2,7 @@
 Author: L. Saetta
 Date last modified: 2026-10-17
 License: MIT
-Description: FastAPI application: models, languages, and the SSE evaluation endpoint.
+Description: FastAPI application: models, datasets and languages, and the SSE evaluation endpoint.
 """
 
 import asyncio
@@ -15,15 +15,18 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Literal
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from .config import Settings, load_settings
 from .dataset import (
-    LANGUAGES,
+    DATASETS,
+    DEFAULT_DATASET,
+    LANGUAGE_NAMES,
     DatasetError,
+    DatasetInfo,
     Question,
     cache_path,
     ensure_language_file,
@@ -55,33 +58,35 @@ def get_chat_model() -> ChatModel:
 
 
 class QuestionStore:
-    """In-memory cache of loaded languages, with one download at a time per language."""
+    """In-memory cache of loaded (dataset, language) pairs, one download at a time each."""
 
     def __init__(self):
-        self._questions: dict[str, list[Question]] = {}
-        self._locks: dict[str, asyncio.Lock] = {}
+        self._questions: dict[tuple[str, str], list[Question]] = {}
+        self._locks: dict[tuple[str, str], asyncio.Lock] = {}
 
-    def is_cached(self, language: str, settings: Settings) -> bool:
+    def is_cached(
+        self, dataset: DatasetInfo, language: str, settings: Settings
+    ) -> bool:
         """Tell whether the language is already available without a download."""
-        return (
-            language in self._questions
-            or cache_path(settings.data_cache_dir, language).exists()
-        )
+        return (dataset.key, language) in self._questions or cache_path(
+            settings.data_cache_dir, dataset, language
+        ).exists()
 
-    async def get(self, language: str, settings: Settings) -> list[Question]:
+    async def get(
+        self, dataset: DatasetInfo, language: str, settings: Settings
+    ) -> list[Question]:
         """Return all questions of a language, downloading the file if needed."""
-        if language in self._questions:
-            return self._questions[language]
-        lock = self._locks.setdefault(language, asyncio.Lock())
+        key = (dataset.key, language)
+        if key in self._questions:
+            return self._questions[key]
+        lock = self._locks.setdefault(key, asyncio.Lock())
         async with lock:
-            if language not in self._questions:
+            if key not in self._questions:
                 path = await asyncio.to_thread(
-                    ensure_language_file, language, settings.data_cache_dir
+                    ensure_language_file, dataset, language, settings.data_cache_dir
                 )
-                self._questions[language] = await asyncio.to_thread(
-                    load_questions, path
-                )
-        return self._questions[language]
+                self._questions[key] = await asyncio.to_thread(load_questions, path)
+        return self._questions[key]
 
 
 @lru_cache
@@ -94,6 +99,7 @@ class EvaluationRequest(BaseModel):
     """Body of ``POST /api/evaluations``."""
 
     model_id: str
+    dataset: str = DEFAULT_DATASET
     language: str
     num_questions: int = Field(ge=1)
     seed: int | None = Field(default=None, ge=0)
@@ -127,10 +133,42 @@ def list_models(settings: Settings = Depends(get_settings)) -> dict:
     }
 
 
+def _languages(dataset: DatasetInfo) -> list[dict]:
+    """Return the languages of a dataset as code and English name."""
+    return [
+        {"code": code, "name": LANGUAGE_NAMES.get(code, code)}
+        for code in dataset.languages
+    ]
+
+
+@app.get("/api/datasets")
+def list_datasets() -> dict:
+    """Return the supported datasets with their languages and test-split size."""
+    return {
+        "default": DEFAULT_DATASET,
+        "datasets": [
+            {
+                "key": d.key,
+                "name": d.name,
+                "hf_id": d.hf_id,
+                "test_rows": d.test_rows,
+                "languages": _languages(d),
+            }
+            for d in DATASETS.values()
+        ],
+    }
+
+
 @app.get("/api/languages")
-def list_languages() -> dict:
-    """Return the supported language codes with English names."""
-    return {"languages": [{"code": c, "name": n} for c, n in LANGUAGES.items()]}
+def list_languages(dataset: str = Query(DEFAULT_DATASET)) -> dict:
+    """Return the language codes of a dataset with English names.
+
+    Raises:
+        HTTPException: 422 for an unknown dataset.
+    """
+    if dataset not in DATASETS:
+        raise HTTPException(422, f"Unknown dataset: {dataset}")
+    return {"languages": _languages(DATASETS[dataset])}
 
 
 def _sse(event: dict) -> str:
@@ -145,19 +183,20 @@ async def _event_stream(
     store: QuestionStore,
 ) -> AsyncIterator[str]:
     """Prepare the sample and relay evaluator events as SSE messages."""
+    dataset = DATASETS[request.dataset]
     try:
-        if not store.is_cached(request.language, settings):
+        if not store.is_cached(dataset, request.language, settings):
             yield _sse(
                 {
                     "type": "status",
-                    "message": f"Downloading Global-MMLU '{request.language}' test split",
+                    "message": f"Downloading {dataset.name} '{request.language}' test split",
                 }
             )
-        questions = await store.get(request.language, settings)
+        questions = await store.get(dataset, request.language, settings)
         seed = request.seed if request.seed is not None else secrets.randbelow(2**31)
         sample = sample_questions(questions, request.num_questions, seed)
         run_id = (
-            f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-"
+            f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{dataset.key}-"
             f"{request.language}-{_SAFE_NAME_RE.sub('_', request.model_id)}-{seed}"
         )
         config = RunConfig(
@@ -165,6 +204,7 @@ async def _event_stream(
             model_id=request.model_id,
             model_target=settings.model_targets.get(request.model_id, request.model_id),
             reasoning_effort=request.reasoning_effort,
+            dataset=dataset.key,
             language=request.language,
             seed=seed,
             max_concurrency=settings.max_concurrency,
@@ -187,15 +227,22 @@ def create_evaluation(
     """Start an evaluation and stream its progress as Server-Sent Events.
 
     Raises:
-        HTTPException: 422 for an unknown model or language or too many questions.
+        HTTPException: 422 for an unknown model, dataset, or language, or too
+            many questions.
     """
     if request.model_id not in settings.models:
         raise HTTPException(422, f"Unknown model: {request.model_id}")
-    if request.language not in LANGUAGES:
-        raise HTTPException(422, f"Unsupported language: {request.language}")
-    if request.num_questions > settings.max_questions:
+    dataset = DATASETS.get(request.dataset)
+    if dataset is None:
+        raise HTTPException(422, f"Unknown dataset: {request.dataset}")
+    if request.language not in dataset.languages:
         raise HTTPException(
-            422, f"num_questions must be at most {settings.max_questions}"
+            422, f"{dataset.name} does not include language: {request.language}"
+        )
+    limit = min(settings.max_questions, dataset.test_rows)
+    if request.num_questions > limit:
+        raise HTTPException(
+            422, f"num_questions must be at most {limit} for {dataset.name}"
         )
     try:
         model = get_chat_model()

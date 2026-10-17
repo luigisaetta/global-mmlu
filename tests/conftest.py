@@ -36,10 +36,11 @@ def make_rows(count: int) -> list[dict]:
 
 @pytest.fixture
 def parquet_file(tmp_path):
-    """Write 40 synthetic rows to an Italian cache file and return the cache dir."""
+    """Write 40 synthetic rows as the cached Global-MMLU Italian file; return the cache dir."""
     rows = make_rows(40)
     table = pa.table({col: [r[col] for r in rows] for col in COLUMNS})
-    pq.write_table(table, tmp_path / "it-test.parquet")
+    (tmp_path / "global-mmlu").mkdir()
+    pq.write_table(table, tmp_path / "global-mmlu" / "it-test.parquet")
     return tmp_path
 
 

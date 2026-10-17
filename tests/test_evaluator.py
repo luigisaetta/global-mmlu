@@ -35,7 +35,7 @@ def test_extract_letter(reply, expected):
 
 
 def test_build_prompt_lists_options(parquet_file):
-    question = load_questions(parquet_file / "it-test.parquet")[0]
+    question = load_questions(parquet_file / "global-mmlu" / "it-test.parquet")[0]
     prompt = build_prompt(question)
     assert "Question 0?" in prompt
     assert "A. a\nB. b\nC. c\nD. d" in prompt
@@ -54,7 +54,9 @@ async def _collect(model, questions, tmp_path):
 
 
 def test_run_reports_running_accuracy_and_summary(parquet_file, tmp_path):
-    questions = load_questions(parquet_file / "it-test.parquet")[:4]  # answers A B C D
+    questions = load_questions(parquet_file / "global-mmlu" / "it-test.parquet")[
+        :4
+    ]  # answers A B C D
     model = FakeChatModel(
         replies={
             "Question 0?": "A",
@@ -78,7 +80,7 @@ def test_run_reports_running_accuracy_and_summary(parquet_file, tmp_path):
 
 
 def test_stopping_early_cancels_pending_calls(parquet_file, tmp_path):
-    questions = load_questions(parquet_file / "it-test.parquet")
+    questions = load_questions(parquet_file / "global-mmlu" / "it-test.parquet")
     model = FakeChatModel()
     config = RunConfig(
         run_id="run2",

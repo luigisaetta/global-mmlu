@@ -128,3 +128,48 @@ def test_rejected_request_stops_the_run(client):
     assert [e["type"] for e in events] == ["start", "error"]
     assert "Model default" in events[-1]["message"]
     assert fake.calls < 20
+
+
+def test_datasets_list_languages_and_sizes(client):
+    http, _ = client
+    payload = http.get("/api/datasets").json()
+    by_key = {d["key"]: d for d in payload["datasets"]}
+    assert payload["default"] == "global-mmlu"
+    assert by_key["global-mmlu"]["test_rows"] == 14327
+    lite_codes = [lang["code"] for lang in by_key["global-mmlu-lite"]["languages"]]
+    assert len(lite_codes) == 23 and "sq" in lite_codes
+    lite = http.get("/api/languages", params={"dataset": "global-mmlu-lite"}).json()
+    assert {"code": "sq", "name": "Albanian"} in lite["languages"]
+    assert http.get("/api/languages", params={"dataset": "other"}).status_code == 422
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"model_id": "fake.model", "dataset": "other", "language": "it"},
+        {"model_id": "fake.model", "dataset": "global-mmlu", "language": "sq"},
+        {"model_id": "fake.model", "dataset": "global-mmlu-lite", "language": "am"},
+    ],
+)
+def test_language_must_match_dataset(client, body):
+    http, fake = client
+    response = http.post("/api/evaluations", json=body | {"num_questions": 5})
+    assert response.status_code == 422
+    assert fake.calls == 0
+
+
+def test_lite_caps_questions_at_its_size(client):
+    http, _ = client
+    settings = main.app.dependency_overrides[main.get_settings]()
+    main.app.dependency_overrides[main.get_settings] = lambda: replace(
+        settings, max_questions=1000
+    )
+    body = {
+        "model_id": "fake.model",
+        "dataset": "global-mmlu-lite",
+        "language": "sq",
+        "num_questions": 401,
+    }
+    response = http.post("/api/evaluations", json=body)
+    assert response.status_code == 422
+    assert "400" in response.json()["detail"]
