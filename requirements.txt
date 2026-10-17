@@ -1,0 +1,6 @@
+oci>=2.188.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+httpx>=0.28
+pyarrow>=17
+python-dotenv>=1.0

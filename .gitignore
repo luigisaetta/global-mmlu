@@ -1,0 +1,21 @@
+# Local settings and secrets
+.env
+
+# Local data and run outputs
+data/
+results/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# OS
+.DS_Store

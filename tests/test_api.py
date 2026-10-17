@@ -1,0 +1,75 @@
+"""
+Author: L. Saetta
+Date last modified: 2026-10-17
+License: MIT
+Description: Tests of the FastAPI endpoints with a fake model and local data.
+"""
+
+# pylint: disable=missing-function-docstring,redefined-outer-name
+
+import json
+from dataclasses import replace
+
+import pytest
+from fastapi.testclient import TestClient
+
+from app import main
+from conftest import FakeChatModel
+
+
+@pytest.fixture
+def client(parquet_file, tmp_path, monkeypatch):
+    settings = replace(
+        main.get_settings(),
+        models=["fake.model"],
+        default_model="fake.model",
+        max_questions=20,
+        data_cache_dir=parquet_file,
+        results_dir=tmp_path / "results",
+    )
+    fake = FakeChatModel()
+    monkeypatch.setattr(main, "get_chat_model", lambda: fake)
+    main.app.dependency_overrides[main.get_settings] = lambda: settings
+    main.app.dependency_overrides[main.get_store] = main.QuestionStore
+    yield TestClient(main.app), fake
+    main.app.dependency_overrides.clear()
+
+
+def _events(response):
+    return [
+        json.loads(line[6:])
+        for line in response.text.splitlines()
+        if line.startswith("data: ")
+    ]
+
+
+def test_models_and_languages(client):
+    http, _ = client
+    assert http.get("/api/models").json()["models"] == ["fake.model"]
+    codes = [lang["code"] for lang in http.get("/api/languages").json()["languages"]]
+    assert len(codes) == 42 and "it" in codes
+
+
+def test_evaluation_streams_events(client):
+    http, fake = client
+    body = {"model_id": "fake.model", "language": "it", "num_questions": 5, "seed": 3}
+    response = http.post("/api/evaluations", json=body)
+    assert response.headers["content-type"].startswith("text/event-stream")
+    events = _events(response)
+    assert [e["type"] for e in events] == ["start"] + ["result"] * 5 + ["done"]
+    assert events[0]["seed"] == 3 and fake.calls == 5
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"model_id": "other", "language": "it", "num_questions": 5},
+        {"model_id": "fake.model", "language": "xx", "num_questions": 5},
+        {"model_id": "fake.model", "language": "it", "num_questions": 21},
+        {"model_id": "fake.model", "language": "it", "num_questions": 0},
+    ],
+)
+def test_invalid_requests_are_rejected_without_calls(client, body):
+    http, fake = client
+    assert http.post("/api/evaluations", json=body).status_code == 422
+    assert fake.calls == 0

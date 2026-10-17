@@ -1,0 +1,12 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["backend"]
+
+[tool.black]
+line-length = 88
+
+[tool.pylint.main]
+source-roots = ["backend"]
+
+[tool.pylint."messages control"]
+disable = ["too-few-public-methods"]
