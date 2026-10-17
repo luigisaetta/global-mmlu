@@ -21,8 +21,12 @@ from conftest import FakeChatModel
 def client(parquet_file, tmp_path, monkeypatch):
     settings = replace(
         main.get_settings(),
-        models=["fake.model"],
+        models=["fake.model", "dedicated"],
         default_model="fake.model",
+        model_targets={
+            "fake.model": "fake.model",
+            "dedicated": "ocid1.generativeaiendpoint.oc1.test.example",
+        },
         max_questions=20,
         data_cache_dir=parquet_file,
         results_dir=tmp_path / "results",
@@ -45,7 +49,7 @@ def _events(response):
 
 def test_models_and_languages(client):
     http, _ = client
-    assert http.get("/api/models").json()["models"] == ["fake.model"]
+    assert http.get("/api/models").json()["models"] == ["fake.model", "dedicated"]
     codes = [lang["code"] for lang in http.get("/api/languages").json()["languages"]]
     assert len(codes) == 42 and "it" in codes
 
@@ -73,3 +77,12 @@ def test_invalid_requests_are_rejected_without_calls(client, body):
     http, fake = client
     assert http.post("/api/evaluations", json=body).status_code == 422
     assert fake.calls == 0
+
+
+def test_dedicated_label_calls_the_endpoint_ocid(client):
+    http, fake = client
+    body = {"model_id": "dedicated", "language": "it", "num_questions": 2, "seed": 1}
+    events = _events(http.post("/api/evaluations", json=body))
+    assert events[-1]["model_id"] == "dedicated"
+    assert events[-1]["model_target"] == "ocid1.generativeaiendpoint.oc1.test.example"
+    assert set(fake.model_ids) == {"ocid1.generativeaiendpoint.oc1.test.example"}

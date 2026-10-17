@@ -19,6 +19,29 @@ def _split_csv(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def parse_models(value: str) -> dict[str, str]:
+    """Parse ``MODELS`` into a mapping from UI label to invocation target.
+
+    Each comma-separated entry is either an on-demand model ID
+    (``openai.gpt-5.6-luna``, label and target are the same) or
+    ``label=target``, where the target is a model ID or the OCID of a
+    dedicated AI cluster endpoint (``ocid1.generativeaiendpoint...``).
+
+    Raises:
+        ValueError: on an empty label or target, or a duplicate label.
+    """
+    targets: dict[str, str] = {}
+    for entry in _split_csv(value):
+        label, sep, target = entry.partition("=")
+        label, target = label.strip(), (target.strip() if sep else label.strip())
+        if not label or not target:
+            raise ValueError(f"Invalid MODELS entry: '{entry}'")
+        if label in targets:
+            raise ValueError(f"Duplicate model label in MODELS: '{label}'")
+        targets[label] = target
+    return targets
+
+
 def _resolve_path(value: str) -> Path:
     """Expand ``~`` and resolve relative paths against the project root."""
     path = Path(value).expanduser()
@@ -35,6 +58,7 @@ class Settings:  # pylint: disable=too-many-instance-attributes
     oci_compartment_id: str | None
     models: list[str]
     default_model: str
+    model_targets: dict[str, str]
     max_questions: int
     max_concurrency: int
     max_completion_tokens: int
@@ -50,10 +74,12 @@ def load_settings() -> Settings:
         Settings: validated settings.
 
     Raises:
-        ValueError: if the model list is empty or the default model is not in it.
+        ValueError: if the model list is empty or invalid, or the default
+            model is not in it.
     """
     load_dotenv(PROJECT_ROOT / ".env")
-    models = _split_csv(os.getenv("MODELS", "openai.gpt-5.6-luna"))
+    model_targets = parse_models(os.getenv("MODELS", "openai.gpt-5.6-luna"))
+    models = list(model_targets)
     default_model = os.getenv("DEFAULT_MODEL", "").strip() or (
         models[0] if models else ""
     )
@@ -70,6 +96,7 @@ def load_settings() -> Settings:
         oci_compartment_id=os.getenv("OCI_COMPARTMENT_ID", "").strip() or None,
         models=models,
         default_model=default_model,
+        model_targets=model_targets,
         max_questions=int(os.getenv("MAX_QUESTIONS", "500")),
         max_concurrency=max(1, int(os.getenv("MAX_CONCURRENCY", "4"))),
         max_completion_tokens=int(os.getenv("MAX_COMPLETION_TOKENS", "2000")),

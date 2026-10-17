@@ -8,6 +8,7 @@ Description: FastAPI application: models, languages, and the SSE evaluation endp
 import asyncio
 import json
 import logging
+import re
 import secrets
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
@@ -35,6 +36,9 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+# Characters allowed in run IDs, which are also result file names.
+_SAFE_NAME_RE = re.compile(r"[^A-Za-z0-9._-]")
 
 
 @lru_cache
@@ -150,11 +154,12 @@ async def _event_stream(
         sample = sample_questions(questions, request.num_questions, seed)
         run_id = (
             f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-"
-            f"{request.language}-{request.model_id.replace('/', '_')}-{seed}"
+            f"{request.language}-{_SAFE_NAME_RE.sub('_', request.model_id)}-{seed}"
         )
         config = RunConfig(
             run_id=run_id,
             model_id=request.model_id,
+            model_target=settings.model_targets.get(request.model_id, request.model_id),
             language=request.language,
             seed=seed,
             max_concurrency=settings.max_concurrency,

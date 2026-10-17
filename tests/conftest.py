@@ -49,11 +49,12 @@ class FakeChatModel:
         self.replies = replies or {}
         self.fail_on = fail_on or set()
         self.calls = 0
+        self.model_ids = []
 
     def complete(self, model_id: str, prompt: str) -> str:
         """Return the configured reply for the question found in the prompt."""
-        del model_id  # the fake answers the same for every model
         self.calls += 1
+        self.model_ids.append(model_id)
         for question, reply in self.replies.items():
             if question in prompt:
                 if question in self.fail_on:

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-10-17: Dedicated AI cluster endpoints: `MODELS` accepts `label=target`
+  entries, and endpoint OCIDs are called with `DedicatedServingMode`.
 * 2026-10-17: The UI also works when opened at `http://127.0.0.1:3000`
   (Next.js `allowedDevOrigins` and backend CORS defaults); the running
   accuracy line stays visible at 0% and 100%.

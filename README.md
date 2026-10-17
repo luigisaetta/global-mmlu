@@ -40,9 +40,24 @@ Main settings in `.env`:
 | `OCI_PROFILE` | profile of the OCI config file (user principal) | `DEFAULT` |
 | `OCI_REGION` | region of the inference endpoint | `eu-frankfurt-1` |
 | `OCI_COMPARTMENT_ID` | compartment for the calls | profile tenancy |
-| `MODELS`, `DEFAULT_MODEL` | model IDs offered by the UI | `openai.gpt-5.6-luna` |
+| `MODELS`, `DEFAULT_MODEL` | models offered by the UI (see below) | `openai.gpt-5.6-luna` |
 | `MAX_CONCURRENCY` | parallel calls per run | `4` |
 | `MAX_QUESTIONS` | upper bound per run | `500` |
+
+`MODELS` is a comma-separated list. An entry is either an on-demand model ID,
+or `label=target` to show a readable label in the UI. A target that is the
+OCID of a dedicated AI cluster endpoint (`ocid1.generativeaiendpoint...`) is
+called on that endpoint:
+
+```
+MODELS=openai.gpt-5.6-luna,my-gpt-oss=ocid1.generativeaiendpoint.oc1.eu-frankfurt-1.<id>
+DEFAULT_MODEL=openai.gpt-5.6-luna
+```
+
+Restart the backend after changing `.env`. On-demand OpenAI models are sent
+`max_completion_tokens` and `reasoning_effort=LOW`; other models and all
+dedicated endpoints get `max_tokens` and `temperature=0`. Cohere models
+(`CohereChatRequest` format) are not supported yet.
 
 ## Run
 
@@ -93,8 +108,9 @@ Unit tests use local fixtures and a fake model: no network or credentials.
 
 ## Costs and cleanup
 
-Each question is one on-demand inference call, billed per token. No OCI
-resources are created. `data/` and `results/` are local and can be deleted.
+Each question is one inference call: billed per token on demand, or covered
+by the hourly cost of an existing dedicated AI cluster. No OCI resources are
+created. `data/` and `results/` are local and can be deleted.
 
 ## Troubleshooting
 

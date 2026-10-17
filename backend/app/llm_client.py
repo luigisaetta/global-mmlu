@@ -15,13 +15,30 @@ from oci.generative_ai_inference import models as genai
 from .config import Settings
 
 INFERENCE_ENDPOINT = "https://inference.generativeai.{region}.oci.oraclecloud.com"
+DEDICATED_ENDPOINT_PREFIX = "ocid1.generativeaiendpoint."
+
+
+def serving_mode(target: str) -> genai.ServingMode:
+    """Return the serving mode for a target.
+
+    Args:
+        target: an on-demand model ID, or the OCID of a dedicated AI cluster
+            endpoint.
+
+    Returns:
+        genai.ServingMode: ``DedicatedServingMode`` for endpoint OCIDs,
+        ``OnDemandServingMode`` otherwise.
+    """
+    if target.startswith(DEDICATED_ENDPOINT_PREFIX):
+        return genai.DedicatedServingMode(endpoint_id=target)
+    return genai.OnDemandServingMode(model_id=target)
 
 
 class ChatModel(Protocol):
     """Minimal interface used by the evaluator, so tests can use a fake."""
 
     def complete(self, model_id: str, prompt: str) -> str:
-        """Send one user prompt and return the text of the reply."""
+        """Send one user prompt to a model ID or endpoint OCID; return the reply."""
 
 
 class OciChatModel:
@@ -63,7 +80,11 @@ class OciChatModel:
         return client
 
     def _build_request(self, model_id: str, prompt: str) -> genai.GenericChatRequest:
-        """Build the chat request; OpenAI models take completion-token and reasoning options."""
+        """Build the chat request.
+
+        On-demand OpenAI models take completion-token and reasoning options;
+        other models, including dedicated endpoints, take ``max_tokens``.
+        """
         message = genai.UserMessage(content=[genai.TextContent(text=prompt)])
         if model_id.startswith("openai."):
             return genai.GenericChatRequest(
@@ -80,14 +101,14 @@ class OciChatModel:
         )
 
     def complete(self, model_id: str, prompt: str) -> str:
-        """Send one prompt to an on-demand model and return the reply text.
+        """Send one prompt to a model ID or endpoint OCID and return the reply text.
 
         Raises:
             oci.exceptions.ServiceError: on service errors left after retries.
         """
         details = genai.ChatDetails(
             compartment_id=self._compartment_id,
-            serving_mode=genai.OnDemandServingMode(model_id=model_id),
+            serving_mode=serving_mode(model_id),
             chat_request=self._build_request(model_id, prompt),
         )
         response = self._client().chat(details)

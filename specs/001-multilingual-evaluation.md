@@ -22,7 +22,8 @@ is in progress.
 
 ## Non-goals (for now)
 
-* Dynamic model discovery (the model list is a configuration value).
+* Dynamic model discovery (the model list, including dedicated endpoint
+  OCIDs, is a configuration value).
 * Authentication methods other than the OCI user principal (API key in
   `~/.oci/config`).
 * Non-GENERIC chat formats (for example `CohereChatRequest`).
@@ -68,6 +69,10 @@ Verified 2026-10-17 with OCI Python SDK 2.188.0:
 * `GenerativeAiInferenceClient.chat` with `OnDemandServingMode(model_id=...)`
   and `GenericChatRequest(api_format="GENERIC", max_completion_tokens=...,
   reasoning_effort="LOW")` returns the expected answer for this model.
+* Dedicated AI cluster endpoints are called with
+  `DedicatedServingMode(endpoint_id=<endpoint OCID>)` and the same
+  `GenericChatRequest`; the backend chooses it when the target starts with
+  `ocid1.generativeaiendpoint.`.
 * Endpoint: `https://inference.generativeai.{region}.oci.oraclecloud.com`.
 * Compartment: `OCI_COMPARTMENT_ID`, defaulting to the profile tenancy.
 
@@ -131,10 +136,16 @@ Environment variables (`.env`, see `.env.example`): `OCI_CONFIG_FILE`,
 `MAX_QUESTIONS`, `MAX_CONCURRENCY`, `MAX_COMPLETION_TOKENS`, `DATA_CACHE_DIR`,
 `RESULTS_DIR`, `CORS_ORIGINS`. Frontend: `NEXT_PUBLIC_API_BASE_URL`.
 
+`MODELS` entries are `model_id` or `label=target`; the target is a model ID or
+a dedicated endpoint OCID. The API and UI use the label; results record both
+`model_id` (label) and `model_target`. Duplicate or empty labels fail at
+startup.
+
 ## Costs and cleanup
 
-Each question is one on-demand inference call, billed per token. No OCI
-resources are created. Local artifacts: `data/cache/` and `results/`
+Each question is one inference call: billed per token on demand, or covered
+by the hourly cost of an existing dedicated AI cluster. No OCI resources are
+created or changed. Local artifacts: `data/cache/` and `results/`
 (both ignored by Git) can be deleted at any time.
 
 ## Acceptance criteria
@@ -165,8 +176,15 @@ Live checks on OCI Generative AI, 2026-10-17, `eu-frankfurt-1`, user principal
 | UI Stop, `de`, N=100 | stopped at 34/100; Start re-enabled |
 | API disconnect after 6 s, `it`, N=100, seed 7 | 18 results received; backend logged the stop and saved them with `stopped: true` |
 
-Mean latency was about 1.0–1.1 s per call. These are single runs on small
+| Dedicated endpoint (`md-gptoss120b-fusion-endpoint`, compartment `dac`, imported gpt-oss-120b model), API, `it`, N=10, seed 42 | 10/10 correct, 0 invalid, 0 errors, mean latency 2.7 s; calls used `DedicatedServingMode` |
+
+Before the dedicated run, single probe calls on that endpoint succeeded with
+both parameter sets (`max_tokens`+`temperature` and
+`max_completion_tokens`+`reasoning_effort`) and with the compartment set to
+either the tenancy or the endpoint's compartment.
+
+Mean latency was about 1.0–1.1 s per call on demand. These are single runs on small
 samples: they verify the mechanism, not the model's accuracy.
 
-Not verified: other models (non-OpenAI formats), other regions, runs near
+Not verified: other on-demand vendors (non-OpenAI models), Cohere formats, other regions, runs near
 `MAX_QUESTIONS`, behavior under service throttling (429).

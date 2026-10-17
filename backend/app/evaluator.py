@@ -45,7 +45,11 @@ def extract_letter(reply: str) -> str | None:
 
 @dataclass
 class RunConfig:
-    """Inputs of one evaluation run."""
+    """Inputs of one evaluation run.
+
+    ``model_id`` is the label shown to the user; ``model_target`` is what the
+    chat model is called with (model ID or endpoint OCID), defaulting to the label.
+    """
 
     run_id: str
     model_id: str
@@ -53,6 +57,12 @@ class RunConfig:
     seed: int
     max_concurrency: int
     results_dir: Path
+    model_target: str = ""
+
+    @property
+    def target(self) -> str:
+        """Return the invocation target of the run."""
+        return self.model_target or self.model_id
 
 
 @dataclass
@@ -139,6 +149,7 @@ def _summary(config: RunConfig, state: _RunState, total: int) -> dict:
     return {
         "run_id": config.run_id,
         "model_id": config.model_id,
+        "model_target": config.target,
         "language": config.language,
         "seed": config.seed,
         "requested": total,
@@ -199,7 +210,7 @@ async def run_evaluation(
 
     semaphore = asyncio.Semaphore(config.max_concurrency)
     tasks = [
-        asyncio.create_task(_ask(model, config.model_id, i, q, semaphore))
+        asyncio.create_task(_ask(model, config.target, i, q, semaphore))
         for i, q in enumerate(questions)
     ]
     state = _RunState()
