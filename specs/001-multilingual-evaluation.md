@@ -96,6 +96,33 @@ D. <option_d>
 Grading: the first standalone letter A–D in the reply is the prediction.
 A reply without one is recorded as `invalid` and counted as wrong.
 
+Reasoning effort: optional per run (`NONE`, `MINIMAL`, `LOW`, `MEDIUM`,
+`HIGH`, the values of `GenericChatRequest.reasoning_effort` in SDK 2.188.0).
+When omitted the parameter is not sent and the model uses its own default.
+No effort is forced on any model.
+
+Observed on 2026-10-17 with a minimal prompt (`eu-frankfurt-1`):
+
+| Model | Not sent | `NONE` | `LOW` / `HIGH` |
+| --- | --- | --- | --- |
+| `openai.gpt-4.1` | OK | HTTP 400 | HTTP 400 |
+| `meta.llama-3.3-70b-instruct` | OK | ignored | ignored |
+| `google.gemini-2.5-flash` | OK | OK, no reasoning tokens | OK |
+| `openai.gpt-5.6-luna` | OK | OK | OK |
+| dedicated gpt-oss-120b endpoint | OK | HTTP 400 | OK |
+| dedicated Qwen 3.6 endpoint | long reasoning | OK, no reasoning | OK |
+
+Because an HTTP 400 means the request itself is invalid for the model, the
+evaluator stops the run at the first one with an `error` event (partial
+results saved with `stopped: true`) instead of failing every question.
+
+Diagnosis that motivated the option: on the dedicated Qwen 3.6 endpoint with
+`max_tokens=2000` and no effort, 17 of 100 answers were empty, each after about
+25.7 s. A replayed question returned `finish_reason=length` with all 2000
+completion tokens spent on reasoning (`reasoning_content`) and no content;
+with 8000 tokens the result was the same after 97 s; with `NONE` the model
+answered in 0.3 s.
+
 ## Intended behavior
 
 API (all JSON, base `http://localhost:8000`):
@@ -108,21 +135,24 @@ API (all JSON, base `http://localhost:8000`):
 | POST | `/api/evaluations` | SSE stream of a run |
 
 `POST /api/evaluations` body: `model_id`, `language`, `num_questions`
-(1–`MAX_QUESTIONS`), optional `seed`. Unknown model or language returns 422
-before any remote call.
+(1–`MAX_QUESTIONS`), optional `seed`, optional `reasoning_effort`. Unknown
+model, language, or effort returns 422 before any remote call.
+`GET /api/models` also returns the allowed `reasoning_efforts`.
 
 SSE events (`data:` lines carrying JSON with a `type` field):
 
 * `status`: preparation messages (for example dataset download).
-* `start`: `run_id`, `seed`, `total`, `model_id`, `language`.
+* `start`: `run_id`, `seed`, `total`, `model_id`, `reasoning_effort`, `language`.
 * `result`: one per question, in completion order: `index`, `sample_id`,
   `subject`, `subject_category`, `cultural_sensitivity_label`, `expected`,
   `predicted`, `correct`, `invalid`, `latency_s`, `error`, plus running
   `completed`, `correct_count`, and `accuracy`.
 * `done`: final summary with overall accuracy, accuracy by
   `subject_category` and by cultural sensitivity label, invalid and error
-  counts, mean latency, `stopped: false`, and the path of the saved result file.
-* `error`: fatal error; the stream ends.
+  counts, mean latency, `reasoning_effort`, `model_target`, `stopped: false`,
+  and the path of the saved result file.
+* `error`: fatal error, including a request rejected with HTTP 400; the
+  stream ends.
 
 Calls run concurrently, bounded by `MAX_CONCURRENCY`. A failed call (after the
 SDK retry strategy) is recorded with `error` and counted as wrong; the run
@@ -175,13 +205,21 @@ Live checks on OCI Generative AI, 2026-10-17, `eu-frankfurt-1`, user principal
 | UI, `de`, N=20 | live progress, tiles, chart; 15/20 (0.75); breakdown shown; file saved |
 | UI Stop, `de`, N=100 | stopped at 34/100; Start re-enabled |
 | API disconnect after 6 s, `it`, N=100, seed 7 | 18 results received; backend logged the stop and saved them with `stopped: true` |
-
 | Dedicated endpoint (`md-gptoss120b-fusion-endpoint`, compartment `dac`, imported gpt-oss-120b model), API, `it`, N=10, seed 42 | 10/10 correct, 0 invalid, 0 errors, mean latency 2.7 s; calls used `DedicatedServingMode` |
 
 Before the dedicated run, single probe calls on that endpoint succeeded with
 both parameter sets (`max_tokens`+`temperature` and
 `max_completion_tokens`+`reasoning_effort`) and with the compartment set to
 either the tenancy or the endpoint's compartment.
+
+Reasoning effort, API, 2026-10-17:
+
+| Check | Observed |
+| --- | --- |
+| Dedicated Qwen 3.6, `it`, N=50, seed 1911322290, effort not sent (UI run) | 38/50 (0.76), 8 invalid, mean latency 6.6 s, max 25.8 s |
+| Same sample, `NONE` | 37/50 (0.74), 0 invalid, mean latency 0.26 s, max 1.5 s |
+| `openai.gpt-4.1`, `LOW`, N=20 | `start` then `error` with the service's HTTP 400 message; no results |
+| `openai.gpt-4.1`, not sent, N=3 | 3/3, no errors |
 
 Mean latency was about 1.0–1.1 s per call on demand. These are single runs on small
 samples: they verify the mechanism, not the model's accuracy.

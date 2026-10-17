@@ -15,6 +15,7 @@ export interface ModelCatalog {
   models: string[];
   default: string;
   region: string;
+  reasoning_efforts: string[];
 }
 
 export interface Tally {
@@ -46,6 +47,7 @@ export interface StartEvent {
   type: "start";
   run_id: string;
   model_id: string;
+  reasoning_effort: string | null;
   language: string;
   seed: number;
   total: number;
@@ -54,6 +56,7 @@ export interface StartEvent {
 export interface DoneEvent extends Tally {
   type: "done";
   run_id: string;
+  reasoning_effort: string | null;
   seed: number;
   requested: number;
   completed: number;
@@ -77,6 +80,8 @@ export interface EvaluationRequest {
   language: string;
   num_questions: number;
   seed?: number;
+  /** Omitted: the model uses its own default reasoning effort. */
+  reasoning_effort?: string;
 }
 
 async function getJson<T>(path: string): Promise<T> {

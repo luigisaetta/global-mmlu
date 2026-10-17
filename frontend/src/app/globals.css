@@ -135,6 +135,12 @@ h3 {
   font-weight: 400;
 }
 
+.setup .hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 select,
 input {
   font: inherit;

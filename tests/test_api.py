@@ -71,6 +71,12 @@ def test_evaluation_streams_events(client):
         {"model_id": "fake.model", "language": "xx", "num_questions": 5},
         {"model_id": "fake.model", "language": "it", "num_questions": 21},
         {"model_id": "fake.model", "language": "it", "num_questions": 0},
+        {
+            "model_id": "fake.model",
+            "language": "it",
+            "num_questions": 5,
+            "reasoning_effort": "EXTREME",
+        },
     ],
 )
 def test_invalid_requests_are_rejected_without_calls(client, body):
@@ -86,3 +92,39 @@ def test_dedicated_label_calls_the_endpoint_ocid(client):
     assert events[-1]["model_id"] == "dedicated"
     assert events[-1]["model_target"] == "ocid1.generativeaiendpoint.oc1.test.example"
     assert set(fake.model_ids) == {"ocid1.generativeaiendpoint.oc1.test.example"}
+
+
+def test_reasoning_effort_reaches_the_model(client):
+    http, fake = client
+    body = {
+        "model_id": "fake.model",
+        "language": "it",
+        "num_questions": 3,
+        "reasoning_effort": "NONE",
+    }
+    events = _events(http.post("/api/evaluations", json=body))
+    assert events[0]["reasoning_effort"] == "NONE"
+    assert events[-1]["reasoning_effort"] == "NONE"
+    assert fake.efforts == ["NONE"] * 3
+
+
+def test_default_reasoning_effort_is_not_sent(client):
+    http, fake = client
+    body = {"model_id": "fake.model", "language": "it", "num_questions": 2}
+    http.post("/api/evaluations", json=body)
+    assert fake.efforts == [None, None]
+
+
+def test_rejected_request_stops_the_run(client):
+    http, fake = client
+    fake.reject = True
+    body = {
+        "model_id": "fake.model",
+        "language": "it",
+        "num_questions": 20,
+        "reasoning_effort": "LOW",
+    }
+    events = _events(http.post("/api/evaluations", json=body))
+    assert [e["type"] for e in events] == ["start", "error"]
+    assert "Model default" in events[-1]["message"]
+    assert fake.calls < 20

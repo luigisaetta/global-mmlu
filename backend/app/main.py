@@ -13,6 +13,7 @@ import secrets
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from functools import lru_cache
+from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,7 +31,7 @@ from .dataset import (
     sample_questions,
 )
 from .evaluator import RunConfig, run_evaluation
-from .llm_client import ChatModel, OciChatModel
+from .llm_client import REASONING_EFFORTS, ChatModel, OciChatModel
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -96,6 +97,8 @@ class EvaluationRequest(BaseModel):
     language: str
     num_questions: int = Field(ge=1)
     seed: int | None = Field(default=None, ge=0)
+    # None: the parameter is not sent and the model uses its own default.
+    reasoning_effort: Literal["NONE", "MINIMAL", "LOW", "MEDIUM", "HIGH"] | None = None
 
 
 app = FastAPI(title="Global-MMLU multilingual evaluation", version="0.1.0")
@@ -120,6 +123,7 @@ def list_models(settings: Settings = Depends(get_settings)) -> dict:
         "models": settings.models,
         "default": settings.default_model,
         "region": settings.oci_region,
+        "reasoning_efforts": list(REASONING_EFFORTS),
     }
 
 
@@ -160,6 +164,7 @@ async def _event_stream(
             run_id=run_id,
             model_id=request.model_id,
             model_target=settings.model_targets.get(request.model_id, request.model_id),
+            reasoning_effort=request.reasoning_effort,
             language=request.language,
             seed=seed,
             max_concurrency=settings.max_concurrency,

@@ -16,6 +16,16 @@ from .config import Settings
 
 INFERENCE_ENDPOINT = "https://inference.generativeai.{region}.oci.oraclecloud.com"
 DEDICATED_ENDPOINT_PREFIX = "ocid1.generativeaiendpoint."
+# Values accepted by GenericChatRequest.reasoning_effort (OCI SDK 2.188.0).
+REASONING_EFFORTS = ("NONE", "MINIMAL", "LOW", "MEDIUM", "HIGH")
+
+
+class InvalidRequestError(RuntimeError):
+    """The service rejected the request itself (HTTP 400).
+
+    The same request fails for every question, for example when a model does
+    not accept ``reasoning_effort``, so the evaluator stops the run.
+    """
 
 
 def serving_mode(target: str) -> genai.ServingMode:
@@ -37,8 +47,13 @@ def serving_mode(target: str) -> genai.ServingMode:
 class ChatModel(Protocol):
     """Minimal interface used by the evaluator, so tests can use a fake."""
 
-    def complete(self, model_id: str, prompt: str) -> str:
-        """Send one user prompt to a model ID or endpoint OCID; return the reply."""
+    def complete(
+        self, model_id: str, prompt: str, reasoning_effort: str | None = None
+    ) -> str:
+        """Send one user prompt to a model ID or endpoint OCID; return the reply.
+
+        ``reasoning_effort`` is sent only when not None.
+        """
 
 
 class OciChatModel:
@@ -79,39 +94,50 @@ class OciChatModel:
             self._local.client = client
         return client
 
-    def _build_request(self, model_id: str, prompt: str) -> genai.GenericChatRequest:
+    def build_request(
+        self, model_id: str, prompt: str, reasoning_effort: str | None = None
+    ) -> genai.GenericChatRequest:
         """Build the chat request.
 
-        On-demand OpenAI models take completion-token and reasoning options;
-        other models, including dedicated endpoints, take ``max_tokens``.
+        On-demand OpenAI models take ``max_completion_tokens``; other models,
+        including dedicated endpoints, take ``max_tokens`` and temperature 0.
+        ``reasoning_effort`` is added only when given: some models reject it
+        (verified 2026-10-17: ``openai.gpt-4.1`` for any value, a dedicated
+        gpt-oss endpoint for ``NONE``), others ignore it (``meta.llama-3.3``).
         """
         message = genai.UserMessage(content=[genai.TextContent(text=prompt)])
         if model_id.startswith("openai."):
-            return genai.GenericChatRequest(
-                api_format=genai.BaseChatRequest.API_FORMAT_GENERIC,
-                messages=[message],
-                max_completion_tokens=self._max_completion_tokens,
-                reasoning_effort="LOW",
-            )
+            options = {"max_completion_tokens": self._max_completion_tokens}
+        else:
+            options = {"max_tokens": self._max_completion_tokens, "temperature": 0.0}
+        if reasoning_effort is not None:
+            options["reasoning_effort"] = reasoning_effort
         return genai.GenericChatRequest(
             api_format=genai.BaseChatRequest.API_FORMAT_GENERIC,
             messages=[message],
-            max_tokens=self._max_completion_tokens,
-            temperature=0.0,
+            **options,
         )
 
-    def complete(self, model_id: str, prompt: str) -> str:
+    def complete(
+        self, model_id: str, prompt: str, reasoning_effort: str | None = None
+    ) -> str:
         """Send one prompt to a model ID or endpoint OCID and return the reply text.
 
         Raises:
-            oci.exceptions.ServiceError: on service errors left after retries.
+            InvalidRequestError: if the service rejects the request (HTTP 400).
+            oci.exceptions.ServiceError: on other service errors left after retries.
         """
         details = genai.ChatDetails(
             compartment_id=self._compartment_id,
             serving_mode=serving_mode(model_id),
-            chat_request=self._build_request(model_id, prompt),
+            chat_request=self.build_request(model_id, prompt, reasoning_effort),
         )
-        response = self._client().chat(details)
+        try:
+            response = self._client().chat(details)
+        except oci.exceptions.ServiceError as exc:
+            if exc.status == 400:
+                raise InvalidRequestError(_service_message(exc)) from exc
+            raise
         choices = response.data.chat_response.choices or []
         if not choices or not choices[0].message or not choices[0].message.content:
             return ""
@@ -120,3 +146,9 @@ class OciChatModel:
             for part in choices[0].message.content
             if getattr(part, "text", None)
         )
+
+
+def _service_message(exc: oci.exceptions.ServiceError) -> str:
+    """Return a short, single-line message of a service error."""
+    message = " ".join(str(exc.message or exc.code).split())
+    return f"HTTP {exc.status}: {message[:300]}"

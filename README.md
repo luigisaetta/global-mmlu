@@ -55,9 +55,24 @@ DEFAULT_MODEL=openai.gpt-5.6-luna
 ```
 
 Restart the backend after changing `.env`. On-demand OpenAI models are sent
-`max_completion_tokens` and `reasoning_effort=LOW`; other models and all
-dedicated endpoints get `max_tokens` and `temperature=0`. Cohere models
-(`CohereChatRequest` format) are not supported yet.
+`max_completion_tokens`; other models and all dedicated endpoints get
+`max_tokens` and `temperature=0`. Cohere models (`CohereChatRequest` format)
+are not supported yet.
+
+### Reasoning effort
+
+The UI lets you choose the reasoning effort of a run: **Model default** (the
+parameter is not sent) or `none`, `minimal`, `low`, `medium`, `high`. The
+choice is saved with the results; use the same one when comparing models.
+
+* Reasoning models can spend the whole `MAX_COMPLETION_TOKENS` budget on
+  reasoning and return an empty answer, recorded as `invalid` with a latency
+  close to the time needed to generate the budget. Lowering the effort (for
+  example `none`) avoids it.
+* Some models reject the parameter, for example `openai.gpt-4.1` for any value
+  and some gpt-oss deployments for `none`. The run then stops at once with
+  the service error; choose **Model default**. Others, such as Llama, ignore it.
+
 
 ## Run
 

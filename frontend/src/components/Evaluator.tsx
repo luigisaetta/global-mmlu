@@ -29,6 +29,7 @@ const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 export default function Evaluator() {
   const [models, setModels] = useState<string[]>([]);
+  const [efforts, setEfforts] = useState<string[]>([]);
   const [region, setRegion] = useState("");
   const [languages, setLanguages] = useState<Language[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -37,6 +38,8 @@ export default function Evaluator() {
   const [language, setLanguage] = useState("it");
   const [numQuestions, setNumQuestions] = useState(50);
   const [seed, setSeed] = useState("");
+  // Empty string: "Model default", the parameter is not sent.
+  const [reasoningEffort, setReasoningEffort] = useState("");
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [statusMessage, setStatusMessage] = useState("");
@@ -52,6 +55,7 @@ export default function Evaluator() {
         setModels(catalog.models);
         setModelId(catalog.default);
         setRegion(catalog.region);
+        setEfforts(catalog.reasoning_efforts ?? []);
         setLanguages(langs);
       })
       .catch((error: Error) =>
@@ -114,6 +118,7 @@ export default function Evaluator() {
           language,
           num_questions: numQuestions,
           ...(seed.trim() ? { seed: Number(seed) } : {}),
+          ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
         },
         handleEvent,
         controller.signal,
@@ -170,6 +175,25 @@ export default function Evaluator() {
                 </option>
               ))}
             </select>
+          </label>
+
+          <label>
+            Reasoning effort
+            <select
+              value={reasoningEffort}
+              onChange={(e) => setReasoningEffort(e.target.value)}
+              disabled={running}
+            >
+              <option value="">Model default (not sent)</option>
+              {efforts.map((effort) => (
+                <option key={effort} value={effort}>
+                  {effort.toLowerCase()}
+                </option>
+              ))}
+            </select>
+            <span className="hint">
+              Some models reject this setting; the run then stops with an error.
+            </span>
           </label>
 
           <label>
@@ -252,7 +276,12 @@ export default function Evaluator() {
               </h2>
               <span className={`badge ${phase}`}>{phase}</span>
             </div>
-            {start && <p className="muted">Seed {start.seed} · run {start.run_id}</p>}
+            {start && (
+              <p className="muted">
+                Reasoning effort {start.reasoning_effort?.toLowerCase() ?? "model default"} ·
+                seed {start.seed} · run {start.run_id}
+              </p>
+            )}
             {statusMessage && <p className="muted">{statusMessage}</p>}
             {runError && <div className="alert">{runError}</div>}
 

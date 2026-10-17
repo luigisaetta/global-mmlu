@@ -11,7 +11,7 @@ import pytest
 from oci.generative_ai_inference import models as genai
 
 from app.config import parse_models
-from app.llm_client import serving_mode
+from app.llm_client import OciChatModel, serving_mode
 
 ENDPOINT = "ocid1.generativeaiendpoint.oc1.eu-frankfurt-1.example"
 
@@ -42,3 +42,26 @@ def test_serving_mode_for_on_demand_and_dedicated():
     assert on_demand.model_id == "openai.gpt-5.6-luna"
     assert isinstance(dedicated, genai.DedicatedServingMode)
     assert dedicated.endpoint_id == ENDPOINT
+
+
+def _client_with_budget(tokens: int) -> OciChatModel:
+    """Return an OciChatModel without OCI config, enough for build_request."""
+    client = object.__new__(OciChatModel)
+    client._max_completion_tokens = tokens  # pylint: disable=protected-access
+    return client
+
+
+def test_reasoning_effort_is_sent_only_when_given():
+    client = _client_with_budget(500)
+    default = client.build_request("meta.llama-3.3-70b-instruct", "q")
+    explicit = client.build_request("meta.llama-3.3-70b-instruct", "q", "NONE")
+    assert default.reasoning_effort is None
+    assert default.max_tokens == 500 and default.temperature == 0.0
+    assert explicit.reasoning_effort == "NONE"
+
+
+def test_openai_models_use_max_completion_tokens_without_forced_effort():
+    request = _client_with_budget(500).build_request("openai.gpt-4.1", "q")
+    assert request.max_completion_tokens == 500
+    assert request.max_tokens is None
+    assert request.reasoning_effort is None

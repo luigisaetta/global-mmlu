@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .dataset import Question
-from .llm_client import ChatModel
+from .llm_client import ChatModel, InvalidRequestError
 
 logger = logging.getLogger(__name__)
 
@@ -44,11 +44,12 @@ def extract_letter(reply: str) -> str | None:
 
 
 @dataclass
-class RunConfig:
+class RunConfig:  # pylint: disable=too-many-instance-attributes
     """Inputs of one evaluation run.
 
     ``model_id`` is the label shown to the user; ``model_target`` is what the
     chat model is called with (model ID or endpoint OCID), defaulting to the label.
+    ``reasoning_effort`` None means the parameter is not sent (model default).
     """
 
     run_id: str
@@ -58,6 +59,7 @@ class RunConfig:
     max_concurrency: int
     results_dir: Path
     model_target: str = ""
+    reasoning_effort: str | None = None
 
     @property
     def target(self) -> str:
@@ -123,19 +125,28 @@ def _grade(
 
 async def _ask(
     model: ChatModel,
-    model_id: str,
+    config: RunConfig,
     index: int,
     question: Question,
     semaphore: asyncio.Semaphore,
 ) -> dict:
-    """Run one call in a worker thread, bounded by the semaphore, and grade it."""
+    """Run one call in a worker thread, bounded by the semaphore, and grade it.
+
+    Raises:
+        InvalidRequestError: if the service rejects the request itself.
+    """
     async with semaphore:
         start = time.perf_counter()
         try:
             reply = await asyncio.to_thread(
-                model.complete, model_id, build_prompt(question)
+                model.complete,
+                config.target,
+                build_prompt(question),
+                config.reasoning_effort,
             )
             error = None
+        except InvalidRequestError:
+            raise
         except Exception as exc:  # pylint: disable=broad-exception-caught
             # A failed call is recorded and counted as wrong; the run continues.
             logger.warning("Call for %s failed: %s", question.sample_id, exc)
@@ -150,6 +161,7 @@ def _summary(config: RunConfig, state: _RunState, total: int) -> dict:
         "run_id": config.run_id,
         "model_id": config.model_id,
         "model_target": config.target,
+        "reasoning_effort": config.reasoning_effort,
         "language": config.language,
         "seed": config.seed,
         "requested": total,
@@ -186,9 +198,11 @@ async def run_evaluation(
     """Evaluate the questions and yield progress events.
 
     Yields a ``start`` event, one ``result`` event per question in completion
-    order (with running accuracy), and a final ``done`` event. If the consumer
-    stops iterating (client disconnect), pending calls that have not started
-    are cancelled.
+    order (with running accuracy), and a final ``done`` event. If the service
+    rejects the request itself (HTTP 400), it yields an ``error`` event and
+    stops. If the consumer stops iterating (client disconnect), pending calls
+    that have not started are cancelled. Partial results are saved in both
+    cases.
 
     Args:
         model: chat model used for the calls.
@@ -203,6 +217,7 @@ async def run_evaluation(
         "type": "start",
         "run_id": config.run_id,
         "model_id": config.model_id,
+        "reasoning_effort": config.reasoning_effort,
         "language": config.language,
         "seed": config.seed,
         "total": total,
@@ -210,13 +225,24 @@ async def run_evaluation(
 
     semaphore = asyncio.Semaphore(config.max_concurrency)
     tasks = [
-        asyncio.create_task(_ask(model, config.target, i, q, semaphore))
+        asyncio.create_task(_ask(model, config, i, q, semaphore))
         for i, q in enumerate(questions)
     ]
     state = _RunState()
     try:
         for next_done in asyncio.as_completed(tasks):
-            result = await next_done
+            try:
+                result = await next_done
+            except InvalidRequestError as exc:
+                logger.error("Run %s rejected by the service: %s", config.run_id, exc)
+                hint = (
+                    " The model may not accept this reasoning effort;"
+                    " try 'Model default'."
+                    if config.reasoning_effort
+                    else ""
+                )
+                yield {"type": "error", "message": f"Request rejected: {exc}.{hint}"}
+                return
             state.results.append(result)
             state.overall.add(result["correct"])
             state.by_category[result["subject_category"]].add(result["correct"])
@@ -237,7 +263,8 @@ async def run_evaluation(
         for task in tasks:
             task.cancel()
         if state.overall.total < total:
-            # Stopped early (client disconnect): keep the partial results.
+            # Stopped early (client disconnect or rejected request): keep the
+            # partial results.
             summary = _summary(config, state, total) | {"stopped": True}
             path = _save(config, summary, state.results)
             logger.info(

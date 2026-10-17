@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 import pytest
 
 from app.dataset import COLUMNS
+from app.llm_client import InvalidRequestError
 
 
 def make_rows(count: int) -> list[dict]:
@@ -45,16 +46,21 @@ def parquet_file(tmp_path):
 class FakeChatModel:
     """Answers from a mapping of question text to reply; can fail on demand."""
 
-    def __init__(self, replies=None, fail_on=None):
+    def __init__(self, replies=None, fail_on=None, reject=False):
         self.replies = replies or {}
         self.fail_on = fail_on or set()
         self.calls = 0
         self.model_ids = []
+        self.efforts = []
+        self.reject = reject
 
-    def complete(self, model_id: str, prompt: str) -> str:
+    def complete(self, model_id: str, prompt: str, reasoning_effort=None) -> str:
         """Return the configured reply for the question found in the prompt."""
         self.calls += 1
         self.model_ids.append(model_id)
+        self.efforts.append(reasoning_effort)
+        if self.reject:
+            raise InvalidRequestError("HTTP 400: unsupported argument")
         for question, reply in self.replies.items():
             if question in prompt:
                 if question in self.fail_on:
