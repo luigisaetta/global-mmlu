@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-10-18: `docs/findings-2026-10-18.md`: conclusions from the 26 completed
+  250-question runs (language gap, reasoning effort, CS/CA, variability).
 * 2026-10-18: README rewritten with a project overview, motivation, features,
   architecture diagram, and limitations.
 * 2026-10-18: The Runs page hides stopped runs by default, with a
