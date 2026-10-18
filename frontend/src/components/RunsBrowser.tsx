@@ -3,7 +3,8 @@
 /**
  * Runs history: the result files saved by the backend, filterable by model,
  * dataset, language, and reasoning effort, with accuracy and 95% confidence
- * interval. Selecting a run shows its breakdowns and answers.
+ * interval. Stopped runs are hidden unless "Show stopped runs" is checked.
+ * Selecting a run shows its breakdowns and answers.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -60,6 +61,8 @@ export default function RunsBrowser() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
+  // Stopped runs are partial; they stay on disk but are hidden by default.
+  const [showStopped, setShowStopped] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -125,8 +128,10 @@ export default function RunsBrowser() {
     [runs],
   );
 
+  const stoppedCount = runs.filter((r) => r.stopped).length;
   const visible = runs.filter(
     (r) =>
+      (showStopped || !r.stopped) &&
       (filters.model === ALL || r.model_id === filters.model) &&
       (filters.dataset === ALL || r.dataset === filters.dataset) &&
       (filters.language === ALL || r.language === filters.language) &&
@@ -178,6 +183,14 @@ export default function RunsBrowser() {
             format={effortLabel}
             onChange={setFilter("effort")}
           />
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={showStopped}
+              onChange={(e) => setShowStopped(e.target.checked)}
+            />
+            Show stopped runs ({stoppedCount})
+          </label>
           <div className="filter-actions">
             <button
               type="button"
@@ -193,7 +206,8 @@ export default function RunsBrowser() {
           </div>
         </div>
         <p className="muted small">
-          Showing {visible.length} of {runs.length} runs.
+          Showing {visible.length} of {runs.length} runs
+          {!showStopped && stoppedCount > 0 && ` (${stoppedCount} stopped hidden)`}.
         </p>
 
         <div className="table-wrap runs-table">

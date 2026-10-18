@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-10-18: The Runs page hides stopped runs by default, with a
+  "Show stopped runs" toggle.
 * 2026-10-18: 95% Wilson confidence interval for accuracy (tile, running
   chart band, breakdown bars, saved results).
 * 2026-10-18: Runs page with the history of saved results, filters by model,

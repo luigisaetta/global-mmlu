@@ -110,7 +110,8 @@ category in the breakdown (bar whiskers and text).
 The **Runs** page (<http://localhost:3000/runs>) lists every result file in
 `results/`, newest first, with accuracy, interval, invalid and error counts,
 latency, and status. Filter by model, dataset, language, and reasoning effort;
-click a run to see its breakdowns and answers. Runs saved before the effort
+click a run to see its breakdowns and answers. Stopped (partial) runs are
+hidden unless **Show stopped runs** is checked; their files are kept. Runs saved before the effort
 was recorded show "not recorded" (on-demand OpenAI models then got `low`).
 
 The first run of a language downloads its Parquet file (a few MB, less for

@@ -495,6 +495,15 @@ tr.ko td:nth-child(6) {
   min-width: 170px;
 }
 
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  padding-bottom: 8px;
+  cursor: pointer;
+}
+
 .filter-actions {
   display: flex;
   gap: 6px;

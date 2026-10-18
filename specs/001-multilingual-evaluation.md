@@ -22,7 +22,8 @@ is in progress.
   start and stop a run, and watch progress, accuracy with its 95% confidence
   interval, and per-question results.
 * A Runs page that lists the saved result files with filters and shows the
-  details of one run.
+  details of one run. Stopped runs are hidden by default (toggle to show
+  them); hiding never deletes files.
 
 ## Non-goals (for now)
 
