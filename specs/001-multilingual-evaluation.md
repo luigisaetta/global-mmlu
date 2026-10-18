@@ -153,10 +153,16 @@ API (all JSON, base `http://localhost:8000`):
 
 `POST /api/evaluations` body: `model_id`, `language`, `num_questions`
 (1 to the smaller of `MAX_QUESTIONS` and the dataset's test size), optional
-`dataset` (`global-mmlu`, the default, or `global-mmlu-lite`), optional `seed`,
-optional `reasoning_effort`. An unknown model, dataset, or effort, or a
-language the dataset does not have, returns 422 before any remote call.
-`GET /api/models` also returns the allowed `reasoning_efforts`.
+`dataset` (`global-mmlu`, the default, or `global-mmlu-lite`), required `seed`
+(non-negative integer), optional `reasoning_effort`. A missing seed, an
+unknown model, dataset, or effort, or a language the dataset does not have,
+returns 422 before any remote call. `GET /api/models` also returns the allowed
+`reasoning_efforts` and `default_seed`.
+
+Reproducibility: every run has an explicit seed; there is no random seed.
+`DEFAULT_SEED` (default 42) is only the value the UI pre-fills. The sample is
+`random.Random(seed).sample` over the row indices of the cached test split,
+so it is stable for a given dataset revision.
 
 SSE events (`data:` lines carrying JSON with a `type` field):
 
@@ -183,7 +189,7 @@ and the partial results are saved with `stopped: true`.
 
 Environment variables (`.env`, see `.env.example`): `OCI_CONFIG_FILE`,
 `OCI_PROFILE`, `OCI_REGION`, `OCI_COMPARTMENT_ID`, `MODELS`, `DEFAULT_MODEL`,
-`MAX_QUESTIONS`, `MAX_CONCURRENCY`, `MAX_COMPLETION_TOKENS`, `DATA_CACHE_DIR`,
+`DEFAULT_SEED`, `MAX_QUESTIONS`, `MAX_CONCURRENCY`, `MAX_COMPLETION_TOKENS`, `DATA_CACHE_DIR`,
 `RESULTS_DIR`, `CORS_ORIGINS`. Frontend: `NEXT_PUBLIC_API_BASE_URL`.
 
 `MODELS` entries are `model_id` or `label=target`; the target is a model ID or
@@ -203,7 +209,8 @@ created or changed. Local artifacts: `data/cache/` and `results/`
 1. The UI lists the configured model, the 42 languages, and accepts N.
 2. Starting a run shows a progress bar and running accuracy that update as
    answers arrive, and a table of per-question results.
-3. The same seed, language, and N select the same questions.
+3. A seed is required; the same seed, dataset, language, and N select the
+   same questions.
 4. Stop ends the stream, no further calls start, and partial results are saved.
 5. Invalid inputs are rejected with 422 without remote calls.
 6. Unit tests run without network or credentials.

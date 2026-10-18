@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-10-18: The seed is required for every run (no random seed); the UI
+  pre-fills `DEFAULT_SEED` from `.env` (42).
 * 2026-10-17: Dataset selection: Global-MMLU or Global-MMLU-Lite (adds
   Albanian and six other languages). Cached files move to
   `data/cache/<dataset>/`; files in the old location are downloaded again.

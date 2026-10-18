@@ -24,6 +24,7 @@ export interface ModelCatalog {
   default: string;
   region: string;
   reasoning_efforts: string[];
+  default_seed: number;
 }
 
 export interface Tally {
@@ -90,7 +91,7 @@ export interface EvaluationRequest {
   dataset: string;
   language: string;
   num_questions: number;
-  seed?: number;
+  seed: number;
   /** Omitted: the model uses its own default reasoning effort. */
   reasoning_effort?: string;
 }

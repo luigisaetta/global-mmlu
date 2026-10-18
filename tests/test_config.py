@@ -10,7 +10,7 @@ Description: Tests of MODELS parsing and of the serving mode chosen for a target
 import pytest
 from oci.generative_ai_inference import models as genai
 
-from app.config import parse_models
+from app.config import load_settings, parse_models
 from app.llm_client import OciChatModel, serving_mode
 
 ENDPOINT = "ocid1.generativeaiendpoint.oc1.eu-frankfurt-1.example"
@@ -65,3 +65,15 @@ def test_openai_models_use_max_completion_tokens_without_forced_effort():
     assert request.max_completion_tokens == 500
     assert request.max_tokens is None
     assert request.reasoning_effort is None
+
+
+def test_default_seed_comes_from_the_environment(monkeypatch):
+    monkeypatch.setenv("DEFAULT_SEED", "7")
+    assert load_settings().default_seed == 7
+
+
+@pytest.mark.parametrize("value", ["-1", "abc", "4.2"])
+def test_invalid_default_seed_is_rejected(monkeypatch, value):
+    monkeypatch.setenv("DEFAULT_SEED", value)
+    with pytest.raises(ValueError):
+        load_settings()

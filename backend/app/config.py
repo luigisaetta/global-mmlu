@@ -59,6 +59,7 @@ class Settings:  # pylint: disable=too-many-instance-attributes
     models: list[str]
     default_model: str
     model_targets: dict[str, str]
+    default_seed: int
     max_questions: int
     max_concurrency: int
     max_completion_tokens: int
@@ -74,8 +75,8 @@ def load_settings() -> Settings:
         Settings: validated settings.
 
     Raises:
-        ValueError: if the model list is empty or invalid, or the default
-            model is not in it.
+        ValueError: if the model list is empty or invalid, the default
+            model is not in it, or DEFAULT_SEED is not a non-negative integer.
     """
     load_dotenv(PROJECT_ROOT / ".env")
     model_targets = parse_models(os.getenv("MODELS", "openai.gpt-5.6-luna"))
@@ -87,6 +88,11 @@ def load_settings() -> Settings:
         raise ValueError("MODELS must list at least one model ID.")
     if default_model not in models:
         raise ValueError(f"DEFAULT_MODEL '{default_model}' is not listed in MODELS.")
+    seed_value = os.getenv("DEFAULT_SEED", "").strip() or "42"
+    if not seed_value.isdigit():
+        raise ValueError(
+            f"DEFAULT_SEED must be a non-negative integer, got '{seed_value}'."
+        )
     return Settings(
         oci_config_file=os.path.expanduser(
             os.getenv("OCI_CONFIG_FILE", "~/.oci/config")
@@ -97,6 +103,7 @@ def load_settings() -> Settings:
         models=models,
         default_model=default_model,
         model_targets=model_targets,
+        default_seed=int(seed_value),
         max_questions=int(os.getenv("MAX_QUESTIONS", "500")),
         max_concurrency=max(1, int(os.getenv("MAX_CONCURRENCY", "4"))),
         max_completion_tokens=int(os.getenv("MAX_COMPLETION_TOKENS", "2000")),

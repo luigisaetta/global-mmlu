@@ -2,7 +2,7 @@
 
 /**
  * Main screen: run setup (model, reasoning effort, dataset, language, number
- * of questions, optional seed), live progress and accuracy, per-question results, and the final
+ * of questions, seed), live progress and accuracy, per-question results, and the final
  * breakdown by subject category and cultural sensitivity.
  */
 
@@ -39,7 +39,9 @@ export default function Evaluator() {
   const [datasetKey, setDatasetKey] = useState("");
   const [language, setLanguage] = useState("it");
   const [numQuestions, setNumQuestions] = useState(50);
+  // Required for reproducible samples; pre-filled with DEFAULT_SEED from the backend.
   const [seed, setSeed] = useState("");
+  const [defaultSeed, setDefaultSeed] = useState<number | null>(null);
   // Empty string: "Model default", the parameter is not sent.
   const [reasoningEffort, setReasoningEffort] = useState("");
 
@@ -58,6 +60,10 @@ export default function Evaluator() {
         setModelId(catalog.default);
         setRegion(catalog.region);
         setEfforts(catalog.reasoning_efforts ?? []);
+        if (typeof catalog.default_seed === "number") {
+          setDefaultSeed(catalog.default_seed);
+          setSeed(String(catalog.default_seed));
+        }
         setDatasets(datasetCatalog.datasets);
         setDatasetKey(datasetCatalog.default);
       })
@@ -138,7 +144,7 @@ export default function Evaluator() {
           dataset: datasetKey,
           language,
           num_questions: numQuestions,
-          ...(seed.trim() ? { seed: Number(seed) } : {}),
+          seed: Number(seed),
           ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
         },
         handleEvent,
@@ -161,7 +167,7 @@ export default function Evaluator() {
     abortRef.current?.abort();
   }
 
-  const seedValid = seed.trim() === "" || /^\d+$/.test(seed.trim());
+  const seedValid = /^\d+$/.test(seed.trim());
   const canStart =
     !running &&
     !!modelId &&
@@ -288,16 +294,31 @@ export default function Evaluator() {
           </div>
 
           <label>
-            Seed <span className="muted">(optional, for a reproducible sample)</span>
+            Seed <span className="muted">(required, same seed = same questions)</span>
             <input
               type="text"
               inputMode="numeric"
-              placeholder="random"
+              required
               value={seed}
               onChange={(e) => setSeed(e.target.value)}
               disabled={running}
               aria-invalid={!seedValid}
             />
+            {defaultSeed !== null && (
+              <span className="hint">
+                Default from .env: {defaultSeed}.{" "}
+                {seed.trim() !== String(defaultSeed) && (
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() => setSeed(String(defaultSeed))}
+                    disabled={running}
+                  >
+                    Reset
+                  </button>
+                )}
+              </span>
+            )}
           </label>
 
           {running ? (

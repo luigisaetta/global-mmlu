@@ -9,7 +9,6 @@ import asyncio
 import json
 import logging
 import re
-import secrets
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -102,7 +101,8 @@ class EvaluationRequest(BaseModel):
     dataset: str = DEFAULT_DATASET
     language: str
     num_questions: int = Field(ge=1)
-    seed: int | None = Field(default=None, ge=0)
+    # Required, so every run can be repeated; the UI pre-fills DEFAULT_SEED.
+    seed: int = Field(ge=0)
     # None: the parameter is not sent and the model uses its own default.
     reasoning_effort: Literal["NONE", "MINIMAL", "LOW", "MEDIUM", "HIGH"] | None = None
 
@@ -130,6 +130,7 @@ def list_models(settings: Settings = Depends(get_settings)) -> dict:
         "default": settings.default_model,
         "region": settings.oci_region,
         "reasoning_efforts": list(REASONING_EFFORTS),
+        "default_seed": settings.default_seed,
     }
 
 
@@ -193,7 +194,7 @@ async def _event_stream(
                 }
             )
         questions = await store.get(dataset, request.language, settings)
-        seed = request.seed if request.seed is not None else secrets.randbelow(2**31)
+        seed = request.seed
         sample = sample_questions(questions, request.num_questions, seed)
         run_id = (
             f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{dataset.key}-"

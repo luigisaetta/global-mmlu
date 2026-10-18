@@ -135,6 +135,16 @@ h3 {
   font-weight: 400;
 }
 
+.link {
+  font: inherit;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .setup .hint {
   font-size: 0.75rem;
   font-weight: 400;

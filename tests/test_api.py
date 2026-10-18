@@ -23,6 +23,7 @@ def client(parquet_file, tmp_path, monkeypatch):
         main.get_settings(),
         models=["fake.model", "dedicated"],
         default_model="fake.model",
+        default_seed=42,
         model_targets={
             "fake.model": "fake.model",
             "dedicated": "ocid1.generativeaiendpoint.oc1.test.example",
@@ -49,7 +50,9 @@ def _events(response):
 
 def test_models_and_languages(client):
     http, _ = client
-    assert http.get("/api/models").json()["models"] == ["fake.model", "dedicated"]
+    catalog = http.get("/api/models").json()
+    assert catalog["models"] == ["fake.model", "dedicated"]
+    assert catalog["default_seed"] == 42
     codes = [lang["code"] for lang in http.get("/api/languages").json()["languages"]]
     assert len(codes) == 42 and "it" in codes
 
@@ -81,7 +84,9 @@ def test_evaluation_streams_events(client):
 )
 def test_invalid_requests_are_rejected_without_calls(client, body):
     http, fake = client
-    assert http.post("/api/evaluations", json=body).status_code == 422
+    # A valid seed, so that the rejection comes from the field under test.
+    response = http.post("/api/evaluations", json=body | {"seed": 1})
+    assert response.status_code == 422
     assert fake.calls == 0
 
 
@@ -100,6 +105,7 @@ def test_reasoning_effort_reaches_the_model(client):
         "model_id": "fake.model",
         "language": "it",
         "num_questions": 3,
+        "seed": 1,
         "reasoning_effort": "NONE",
     }
     events = _events(http.post("/api/evaluations", json=body))
@@ -110,7 +116,7 @@ def test_reasoning_effort_reaches_the_model(client):
 
 def test_default_reasoning_effort_is_not_sent(client):
     http, fake = client
-    body = {"model_id": "fake.model", "language": "it", "num_questions": 2}
+    body = {"model_id": "fake.model", "language": "it", "num_questions": 2, "seed": 1}
     http.post("/api/evaluations", json=body)
     assert fake.efforts == [None, None]
 
@@ -122,6 +128,7 @@ def test_rejected_request_stops_the_run(client):
         "model_id": "fake.model",
         "language": "it",
         "num_questions": 20,
+        "seed": 1,
         "reasoning_effort": "LOW",
     }
     events = _events(http.post("/api/evaluations", json=body))
@@ -153,7 +160,9 @@ def test_datasets_list_languages_and_sizes(client):
 )
 def test_language_must_match_dataset(client, body):
     http, fake = client
-    response = http.post("/api/evaluations", json=body | {"num_questions": 5})
+    response = http.post(
+        "/api/evaluations", json=body | {"num_questions": 5, "seed": 1}
+    )
     assert response.status_code == 422
     assert fake.calls == 0
 
@@ -169,7 +178,26 @@ def test_lite_caps_questions_at_its_size(client):
         "dataset": "global-mmlu-lite",
         "language": "sq",
         "num_questions": 401,
+        "seed": 1,
     }
     response = http.post("/api/evaluations", json=body)
     assert response.status_code == 422
     assert "400" in response.json()["detail"]
+
+
+def test_seed_is_required(client):
+    http, fake = client
+    body = {"model_id": "fake.model", "language": "it", "num_questions": 2}
+    assert http.post("/api/evaluations", json=body).status_code == 422
+    assert fake.calls == 0
+
+
+def test_same_seed_selects_the_same_questions(client):
+    http, _ = client
+    body = {"model_id": "fake.model", "language": "it", "num_questions": 5, "seed": 42}
+
+    def sample_ids():
+        events = _events(http.post("/api/evaluations", json=body))
+        return sorted(e["sample_id"] for e in events if e["type"] == "result")
+
+    assert sample_ids() == sample_ids()

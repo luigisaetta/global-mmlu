@@ -47,6 +47,7 @@ Main settings in `.env`:
 | `OCI_COMPARTMENT_ID` | compartment for the calls | profile tenancy |
 | `MODELS`, `DEFAULT_MODEL` | models offered by the UI (see below) | `openai.gpt-5.6-luna` |
 | `MAX_CONCURRENCY` | parallel calls per run | `4` |
+| `DEFAULT_SEED` | seed pre-filled in the UI | `42` |
 | `MAX_QUESTIONS` | upper bound per run | `500` |
 
 `MODELS` is a comma-separated list. An entry is either an on-demand model ID,
@@ -97,8 +98,10 @@ restart). Optional variables: `CONDA_ENV`, `HOST`, and `PORT` for the backend,
 `PORT` for the UI (add a new UI origin to `CORS_ORIGINS`).
 
 Open <http://localhost:3000>, choose model, language, and number of
-questions, and press **Start evaluation**. Set a seed to reuse the same
-sample across models. **Stop** ends the run; results received so far are kept.
+questions, and press **Start evaluation**. The seed is required and is
+pre-filled with `DEFAULT_SEED` (42): the same seed, dataset, language, and
+number of questions always select the same questions, so keep it fixed when
+comparing models. **Stop** ends the run; results received so far are kept.
 
 The first run of a language downloads its Parquet file (a few MB, less for
 Lite) into `data/cache/<dataset>/`. Each run is saved as JSON in `results/`.
