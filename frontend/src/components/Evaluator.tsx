@@ -31,7 +31,6 @@ const QUESTION_PRESETS = [10, 50, 100, 250];
 export default function Evaluator() {
   const [models, setModels] = useState<string[]>([]);
   const [efforts, setEfforts] = useState<string[]>([]);
-  const [region, setRegion] = useState("");
   const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
@@ -58,7 +57,6 @@ export default function Evaluator() {
       .then(([catalog, datasetCatalog]) => {
         setModels(catalog.models);
         setModelId(catalog.default);
-        setRegion(catalog.region);
         setEfforts(catalog.reasoning_efforts ?? []);
         if (typeof catalog.default_seed === "number") {
           setDefaultSeed(catalog.default_seed);
@@ -183,9 +181,7 @@ export default function Evaluator() {
         <div>
           <h1>Global-MMLU multilingual evaluation</h1>
           <p className="muted">
-            Random questions from the <code>{dataset?.hf_id ?? "CohereLabs/Global-MMLU"}</code>{" "}
-            test split, answered by an OCI Generative AI model
-            {region ? ` in ${region}` : ""}.
+            Questions extracted from <code>{dataset?.hf_id ?? "CohereLabs/Global-MMLU"}</code>
           </p>
         </div>
       </header>
