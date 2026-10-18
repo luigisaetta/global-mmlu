@@ -310,6 +310,13 @@ input[aria-invalid="true"] {
   margin-top: 2px;
 }
 
+.tile-detail {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
 .tile.strong .tile-value {
   color: var(--accent);
 }
@@ -331,6 +338,12 @@ input[aria-invalid="true"] {
   stroke: var(--border);
   stroke-dasharray: 3 4;
   vector-effect: non-scaling-stroke;
+}
+
+.chart .band {
+  fill: var(--accent);
+  fill-opacity: 0.15;
+  stroke: none;
 }
 
 .chart .line {
@@ -366,7 +379,8 @@ input[aria-invalid="true"] {
 }
 
 .bar {
-  height: 8px;
+  position: relative;
+  height: 10px;
   border-radius: 999px;
   background: var(--border);
   overflow: hidden;
@@ -375,6 +389,16 @@ input[aria-invalid="true"] {
 .bar-fill {
   height: 100%;
   background: var(--accent);
+}
+
+/* 95% confidence interval drawn over the accuracy bar, with end whiskers. */
+.bar-ci {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+  border-left: 2px solid var(--text);
+  border-right: 2px solid var(--text);
 }
 
 .bar-value {
@@ -421,4 +445,83 @@ tr.ok td:nth-child(6) {
 tr.ko td:nth-child(6) {
   color: var(--ko);
   font-weight: 600;
+}
+
+/* Navigation */
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 24px 0;
+}
+
+.nav-title {
+  font-weight: 650;
+  margin-right: 8px;
+}
+
+.nav-link {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 4px 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-link:hover {
+  color: var(--text);
+}
+
+.nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Runs page */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-width: 170px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.runs-table {
+  max-height: 520px;
+  margin-top: 4px;
+}
+
+tr.selectable {
+  cursor: pointer;
+}
+
+tr.selectable:hover td {
+  background: var(--bg);
+}
+
+tr.selected td {
+  background: var(--accent-soft);
+}
+
+td.strong-cell {
+  font-weight: 650;
+}
+
+.run-detail {
+  margin-top: 20px;
 }

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* 2026-10-18: 95% Wilson confidence interval for accuracy (tile, running
+  chart band, breakdown bars, saved results).
+* 2026-10-18: Runs page with the history of saved results, filters by model,
+  dataset, language, and reasoning effort, and run details.
 * 2026-10-18: The seed is required for every run (no random seed); the UI
   pre-fills `DEFAULT_SEED` from `.env` (42).
 * 2026-10-17: Dataset selection: Global-MMLU or Global-MMLU-Lite (adds

@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .dataset import Question
 from .llm_client import ChatModel, InvalidRequestError
+from .stats import wilson_interval
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +82,16 @@ class _Tally:
         self.correct += int(correct)
 
     def as_dict(self) -> dict:
-        """Return counters and accuracy as a JSON-friendly dict."""
+        """Return counters, accuracy, and its 95% Wilson interval as a dict."""
         accuracy = self.correct / self.total if self.total else 0.0
-        return {"total": self.total, "correct": self.correct, "accuracy": accuracy}
+        ci_low, ci_high = wilson_interval(self.correct, self.total)
+        return {
+            "total": self.total,
+            "correct": self.correct,
+            "accuracy": accuracy,
+            "ci_low": ci_low,
+            "ci_high": ci_high,
+        }
 
 
 @dataclass
@@ -255,12 +263,15 @@ async def run_evaluation(
             state.invalid += int(result["invalid"])
             state.errors += int(result["error"] is not None)
             state.latency_sum += result["latency_s"]
+            overall = state.overall.as_dict()
             yield {
                 "type": "result",
                 **result,
                 "completed": state.overall.total,
                 "correct_count": state.overall.correct,
-                "accuracy": state.overall.as_dict()["accuracy"],
+                "accuracy": overall["accuracy"],
+                "ci_low": overall["ci_low"],
+                "ci_high": overall["ci_high"],
             }
     finally:
         for task in tasks:

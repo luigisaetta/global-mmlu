@@ -19,7 +19,10 @@ is in progress.
   * streams progress and running accuracy to the client (Server-Sent Events);
   * saves each completed run as a JSON file.
 * A local Next.js UI to select model, dataset, language, and number of questions,
-  start and stop a run, and watch progress, accuracy, and per-question results.
+  start and stop a run, and watch progress, accuracy with its 95% confidence
+  interval, and per-question results.
+* A Runs page that lists the saved result files with filters and shows the
+  details of one run.
 
 ## Non-goals (for now)
 
@@ -112,6 +115,14 @@ D. <option_d>
 Grading: the first standalone letter A–D in the reply is the prediction.
 A reply without one is recorded as `invalid` and counted as wrong.
 
+Confidence interval: every accuracy (running, overall, per subject category,
+per cultural sensitivity label) comes with the 95% Wilson score interval
+(`ci_low`, `ci_high`, z = 1.96), computed in `backend/app/stats.py`. Wilson
+was chosen over the normal approximation because it stays within [0, 1] and
+is meaningful for small groups and accuracies near 0% or 100% (10/10 gives
+72.2–100%). The interval covers sampling error only, not dataset errors or
+translation quality.
+
 Reasoning effort: optional per run (`NONE`, `MINIMAL`, `LOW`, `MEDIUM`,
 `HIGH`, the values of `GenericChatRequest.reasoning_effort` in SDK 2.188.0).
 When omitted the parameter is not sent and the model uses its own default.
@@ -149,6 +160,8 @@ API (all JSON, base `http://localhost:8000`):
 | GET | `/api/models` | configured model IDs and the default |
 | GET | `/api/datasets` | dataset keys, names, test-split sizes, and languages |
 | GET | `/api/languages?dataset=<key>` | language codes and English names of a dataset |
+| GET | `/api/runs` | normalized summaries of the saved runs, newest first |
+| GET | `/api/runs/{run_id}` | one saved run: summary, breakdowns, answers; 404 if absent |
 | POST | `/api/evaluations` | SSE stream of a run |
 
 `POST /api/evaluations` body: `model_id`, `language`, `num_questions`
@@ -172,7 +185,7 @@ SSE events (`data:` lines carrying JSON with a `type` field):
 * `result`: one per question, in completion order: `index`, `sample_id`,
   `subject`, `subject_category`, `cultural_sensitivity_label`, `expected`,
   `predicted`, `correct`, `invalid`, `latency_s`, `error`, plus running
-  `completed`, `correct_count`, and `accuracy`.
+  `completed`, `correct_count`, `accuracy`, `ci_low`, and `ci_high`.
 * `done`: final summary with overall accuracy, accuracy by
   `subject_category` and by cultural sensitivity label, invalid and error
   counts, mean latency, `dataset`, `reasoning_effort`, `model_target`, `stopped: false`,
@@ -184,6 +197,15 @@ Calls run concurrently, bounded by `MAX_CONCURRENCY`. A failed call (after the
 SDK retry strategy) is recorded with `error` and counted as wrong; the run
 continues. If the client disconnects (Stop button), no new calls are started
 and the partial results are saved with `stopped: true`.
+
+Runs history: `backend/app/runs.py` reads `RESULTS_DIR/*.json` and maps every
+saved format to the current summary fields. Files older than a feature get
+`dataset: global-mmlu`, `stopped: false`, `model_target` equal to the label,
+and intervals recomputed from the counts. `reasoning_effort_recorded: false`
+marks runs saved before the effort was recorded (then on-demand OpenAI models
+always got `LOW`), so they are not confused with "not sent". Unreadable files
+are skipped and logged. Run IDs are checked against `[A-Za-z0-9._-]+` before
+a file is opened.
 
 ## Configuration
 
@@ -255,6 +277,15 @@ Dataset selection, 2026-10-17:
 | API, Lite, `sq`, N=20, seed 42, `openai.gpt-5.6-luna` | status (Lite download), 20 results, 18/20 (0.90); file in `data/cache/global-mmlu-lite/` |
 | API, Global-MMLU, `sq` | 422 |
 | UI, Lite, `sq`, N=10 | selector shows 23 languages and max 400; 8/10; title shows the dataset |
+
+Confidence interval and runs page, 2026-10-18:
+
+| Check | Observed |
+| --- | --- |
+| Unit tests for Wilson values (80/100, 10/10, 0/10, 200/250) | match reference values within 0.001 |
+| `list_runs` on the 78 local result files (five saved formats) | 78 listed, none skipped; every detail loads |
+| UI Runs page | 78 runs; filters Albanian + `low` give 11; detail shows breakdown bars with interval whiskers and the answers |
+| UI evaluation, Global-MMLU `it`, N=20, seed 42 | Accuracy tile shows the interval (17 answers: 88.2%, 65.7–96.7%); shaded band in the chart narrows as answers arrive |
 
 Mean latency was about 1.0–1.1 s per call on demand. These are single runs on small
 samples: they verify the mechanism, not the model's accuracy.

@@ -16,17 +16,17 @@ import {
   Language,
   ResultEvent,
   StartEvent,
-  Tally,
   fetchDatasets,
   fetchModels,
   streamEvaluation,
 } from "@/lib/api";
+import { formatCi, percent } from "@/lib/format";
+import { Breakdown, ResultsTable, SENSITIVITY_LABELS, Tile } from "@/components/RunViews";
 
 type Phase = "idle" | "preparing" | "running" | "done" | "stopped" | "error";
 
 const QUESTION_PRESETS = [10, 50, 100, 250];
 
-const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
 
 export default function Evaluator() {
   const [models, setModels] = useState<string[]>([]);
@@ -365,7 +365,12 @@ export default function Evaluator() {
 
             <div className="tiles">
               <Tile label="Answered" value={`${completed} / ${total}`} />
-              <Tile label="Accuracy" value={completed ? percent(accuracy) : "—"} strong />
+              <Tile
+                label="Accuracy"
+                value={completed ? percent(accuracy) : "—"}
+                detail={latest ? `95% CI ${formatCi(latest.ci_low, latest.ci_high)}` : undefined}
+                strong
+              />
               <Tile label="Correct" value={String(latest?.correct_count ?? 0)} />
               <Tile label="Invalid · errors" value={`${invalid} · ${errors}`} />
               <Tile
@@ -385,7 +390,7 @@ export default function Evaluator() {
                 <Breakdown
                   title="Cultural sensitivity"
                   data={summary.by_cultural_sensitivity}
-                  labels={{ CS: "Culturally sensitive", CA: "Culturally agnostic", "-": "Not annotated" }}
+                  labels={SENSITIVITY_LABELS}
                 />
               </div>
               <p className="muted small">Saved to {summary.result_file}</p>
@@ -399,109 +404,37 @@ export default function Evaluator() {
   );
 }
 
-function Tile({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className={strong ? "tile strong" : "tile"}>
-      <div className="tile-label">{label}</div>
-      <div className="tile-value">{value}</div>
-    </div>
-  );
-}
-
-/** Running accuracy after each answer, as a line on a 0–100% scale. */
+/**
+ * Running accuracy after each answer, as a line on a 0–100% scale, with the
+ * running 95% Wilson interval as a shaded band (it narrows as answers arrive).
+ */
 function AccuracyChart({ results }: { results: ResultEvent[] }) {
   const width = 600;
   const height = 120;
   const pad = 4;
-  const points = useMemo(() => {
-    if (results.length < 2) return "";
-    return results
-      .map((r, i) => {
-        const x = (i / (results.length - 1)) * width;
-        // Keep 0% and 100% inside the plot area, so the line stays visible.
-        const y = pad + (1 - r.accuracy) * (height - 2 * pad);
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      })
-      .join(" ");
+  const { points, band } = useMemo(() => {
+    if (results.length < 2) return { points: "", band: "" };
+    const x = (i: number) => ((i / (results.length - 1)) * width).toFixed(1);
+    // Keep 0% and 100% inside the plot area, so the line stays visible.
+    const y = (value: number) => (pad + (1 - value) * (height - 2 * pad)).toFixed(1);
+    const line = results.map((r, i) => `${x(i)},${y(r.accuracy)}`).join(" ");
+    const upper = results.map((r, i) => `${x(i)},${y(r.ci_high)}`);
+    const lower = results.map((r, i) => `${x(i)},${y(r.ci_low)}`).reverse();
+    return { points: line, band: [...upper, ...lower].join(" ") };
   }, [results]);
 
   return (
     <div className="chart">
-      <div className="chart-label muted small">Running accuracy</div>
+      <div className="chart-label muted small">Running accuracy and 95% confidence interval</div>
       <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" role="img"
         aria-label="Running accuracy after each answer">
         {[0.25, 0.5, 0.75].map((level) => (
           <line key={level} x1={0} x2={width} y1={height - level * height}
             y2={height - level * height} className="gridline" />
         ))}
+        {band && <polygon points={band} className="band" />}
         {points && <polyline points={points} className="line" />}
       </svg>
-    </div>
-  );
-}
-
-function Breakdown({
-  title,
-  data,
-  labels = {},
-}: {
-  title: string;
-  data: Record<string, Tally>;
-  labels?: Record<string, string>;
-}) {
-  return (
-    <div>
-      <h3>{title}</h3>
-      {Object.entries(data).map(([key, tally]) => (
-        <div key={key} className="bar-row">
-          <span className="bar-name">{labels[key] ?? key}</span>
-          <div className="bar">
-            <div className="bar-fill" style={{ width: `${tally.accuracy * 100}%` }} />
-          </div>
-          <span className="bar-value">
-            {percent(tally.accuracy)} <span className="muted">({tally.correct}/{tally.total})</span>
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ResultsTable({ results }: { results: ResultEvent[] }) {
-  const rows = [...results].reverse();
-  return (
-    <div className="card">
-      <h2>Answers</h2>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Subject</th>
-              <th>Category</th>
-              <th>CS/CA</th>
-              <th>Expected</th>
-              <th>Predicted</th>
-              <th>Latency</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.index} className={r.correct ? "ok" : "ko"}>
-                <td>{r.index + 1}</td>
-                <td title={r.sample_id}>{r.subject.replaceAll("_", " ")}</td>
-                <td>{r.subject_category}</td>
-                <td>{r.cultural_sensitivity_label}</td>
-                <td>{r.expected}</td>
-                <td title={r.error ?? r.reply}>
-                  {r.error ? "error" : (r.predicted ?? "invalid")}
-                </td>
-                <td>{r.latency_s.toFixed(2)} s</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }

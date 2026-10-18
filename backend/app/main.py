@@ -34,6 +34,7 @@ from .dataset import (
 )
 from .evaluator import RunConfig, run_evaluation
 from .llm_client import REASONING_EFFORTS, ChatModel, OciChatModel
+from .runs import RunNotFoundError, list_runs, load_run
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -170,6 +171,25 @@ def list_languages(dataset: str = Query(DEFAULT_DATASET)) -> dict:
     if dataset not in DATASETS:
         raise HTTPException(422, f"Unknown dataset: {dataset}")
     return {"languages": _languages(DATASETS[dataset])}
+
+
+@app.get("/api/runs")
+def get_runs(settings: Settings = Depends(get_settings)) -> dict:
+    """Return the summaries of the runs saved in RESULTS_DIR, newest first."""
+    return {"runs": list_runs(settings.results_dir)}
+
+
+@app.get("/api/runs/{run_id}")
+def get_run(run_id: str, settings: Settings = Depends(get_settings)) -> dict:
+    """Return one saved run with breakdowns and answers.
+
+    Raises:
+        HTTPException: 404 if the run does not exist or the ID is malformed.
+    """
+    try:
+        return load_run(settings.results_dir, run_id)
+    except RunNotFoundError as exc:
+        raise HTTPException(404, f"Run not found: {run_id}") from exc
 
 
 def _sse(event: dict) -> str:

@@ -103,6 +103,16 @@ pre-filled with `DEFAULT_SEED` (42): the same seed, dataset, language, and
 number of questions always select the same questions, so keep it fixed when
 comparing models. **Stop** ends the run; results received so far are kept.
 
+Accuracy is shown with its 95% Wilson confidence interval: in the
+Accuracy tile, as a shaded band in the running chart, and for each
+category in the breakdown (bar whiskers and text).
+
+The **Runs** page (<http://localhost:3000/runs>) lists every result file in
+`results/`, newest first, with accuracy, interval, invalid and error counts,
+latency, and status. Filter by model, dataset, language, and reasoning effort;
+click a run to see its breakdowns and answers. Runs saved before the effort
+was recorded show "not recorded" (on-demand OpenAI models then got `low`).
+
 The first run of a language downloads its Parquet file (a few MB, less for
 Lite) into `data/cache/<dataset>/`. Each run is saved as JSON in `results/`.
 With Lite, 400 questions give a margin of error of about ±4–5 points (95%).
@@ -119,7 +129,8 @@ curl -N -X POST http://localhost:8000/api/evaluations \
 
 The response is an SSE stream of `status`, `start`, `result`, and `done`
 events (see the specification). Other endpoints: `GET /api/models`,
-`GET /api/datasets`, `GET /api/languages?dataset=...`, `GET /api/health`.
+`GET /api/datasets`, `GET /api/languages?dataset=...`, `GET /api/runs`,
+`GET /api/runs/{run_id}`, `GET /api/health`.
 
 ## Checks
 

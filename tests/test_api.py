@@ -201,3 +201,14 @@ def test_same_seed_selects_the_same_questions(client):
         return sorted(e["sample_id"] for e in events if e["type"] == "result")
 
     assert sample_ids() == sample_ids()
+
+
+def test_runs_api_lists_and_returns_a_saved_run(client):
+    http, _ = client
+    body = {"model_id": "fake.model", "language": "it", "num_questions": 3, "seed": 5}
+    done = _events(http.post("/api/evaluations", json=body))[-1]
+    runs = http.get("/api/runs").json()["runs"]
+    assert [r["run_id"] for r in runs] == [done["run_id"]]
+    detail = http.get(f"/api/runs/{done['run_id']}").json()
+    assert detail["summary"]["seed"] == 5 and len(detail["results"]) == 3
+    assert http.get("/api/runs/not-a-run").status_code == 404
