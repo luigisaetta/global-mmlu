@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-10-18: README rewritten with a project overview, motivation, features,
+  architecture diagram, and limitations.
 * 2026-10-18: The Runs page hides stopped runs by default, with a
   "Show stopped runs" toggle.
 * 2026-10-18: 95% Wilson confidence interval for accuracy (tile, running

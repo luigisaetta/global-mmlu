@@ -1,24 +1,84 @@
 # Global-MMLU multilingual evaluation
 
-Local tool to measure how well an LLM on OCI Generative AI answers
-multiple-choice questions in many languages, using
-[Global-MMLU](https://huggingface.co/datasets/CohereLabs/Global-MMLU)
-(42 languages, 14,327 test questions each) or
+**Does your LLM know as much in Albanian, Swahili, or Hindi as it does in
+English?** Headline benchmark scores are usually measured in English. This
+project lets you find out, language by language, on the models you actually
+run on OCI Generative AI: on-demand models and your own dedicated AI clusters.
+
+Pick a model, a language, and a number of questions in a local web UI. The
+tool draws a reproducible random sample from
+[Global-MMLU](https://huggingface.co/datasets/CohereLabs/Global-MMLU) or
 [Global-MMLU-Lite](https://huggingface.co/datasets/CohereLabs/Global-MMLU-Lite)
-(23 languages, 400 test questions each, balanced between culturally sensitive
-and culturally agnostic questions). Lite also covers languages missing from
-the full set: Albanian, Burmese, Hungarian, Odia, Slovak, Tajik, and Welsh.
+by Cohere Labs, asks the model, and shows answers, accuracy, and its
+confidence interval live, as they arrive.
 
-From a local web UI you pick the model, the dataset, the language, and the
-number of questions. The backend samples that many random questions from the
-language's `test` split, asks the model, and streams progress and running
-accuracy back to the UI.
+## Why it is useful
 
-* `backend/`: FastAPI service (Python 3.12) that downloads and caches the
-  dataset per language, calls OCI Generative AI, and streams Server-Sent Events.
-* `frontend/`: Next.js UI.
-* `specs/001-multilingual-evaluation.md`: scope, design decisions, API, and
-  acceptance criteria.
+* **Same questions, every language.** Global-MMLU translates the same MMLU
+  questions into 42 languages, and Lite adds seven more (including Albanian,
+  Hungarian, Slovak, and Welsh). The gap between a language and English is a
+  direct measure of what a model loses outside English.
+* **Culture-aware results.** Every question is tagged as culturally sensitive
+  (CS) or culturally agnostic (CA), so you can tell "weaker in the language"
+  apart from "weaker on regional knowledge".
+* **Numbers you can trust.** Each run has an explicit seed (default 42): the
+  same seed, dataset, language, and size always select the same questions, so
+  models are compared on identical samples. Every accuracy comes with its 95%
+  Wilson confidence interval, so a 3-point difference on 100 questions is not
+  mistaken for a real one.
+* **Your models, your tenancy.** Calls go through the OCI Generative AI
+  inference API with your own OCI credentials, to on-demand models (OpenAI,
+  Google, Meta, and others) or to dedicated AI cluster endpoints.
+* **Reasoning under control.** Choose the reasoning effort per run and see
+  its effect: reasoning models can burn their token budget thinking and never
+  answer; the tool records it instead of hiding it.
+
+## What you get
+
+* **Live evaluation**: progress bar, running accuracy with a shaded confidence
+  band, invalid answers and errors, latency, and a table of every answer.
+* **Breakdowns** by subject category (STEM, Humanities, Medical, and more) and
+  by cultural sensitivity, each with its interval.
+* **Runs history**: every run is saved as JSON; the Runs page lists them with
+  filters by model, dataset, language, and reasoning effort, and opens any run
+  to its breakdowns and answers.
+* **Safe by design**: Stop ends a run and keeps the partial results; a request
+  the model rejects stops the run at the first error instead of wasting
+  hundreds of calls; nothing is created in your tenancy.
+
+## How it works
+
+```mermaid
+flowchart LR
+    UI["Next.js UI<br/>localhost:3000"] -- "POST /api/evaluations" --> API["FastAPI backend<br/>localhost:8000"]
+    API -- "SSE: progress, accuracy, CI" --> UI
+    API -- "first use: one Parquet file per language" --> HF["Hugging Face<br/>Global-MMLU / Lite"]
+    API -- "one chat call per question" --> OCI["OCI Generative AI<br/>on-demand or dedicated"]
+    API -- "save run" --> RES[("results/*.json")]
+```
+
+1. On first use of a language, the backend downloads only that language's
+   test split (a few MB) and caches it in `data/cache/<dataset>/`.
+2. It samples N questions with the given seed and sends each one to the model
+   as a four-option multiple-choice prompt, a few calls in parallel.
+3. It grades the first letter A–D in each reply and streams every result to
+   the UI as a Server-Sent Event, with running accuracy and interval.
+4. At the end (or on Stop) it saves the run, with summary and answers, to
+   `results/`.
+
+| Dataset | Languages | Test questions per language |
+| --- | --- | --- |
+| Global-MMLU | 42 | 14,327 |
+| Global-MMLU-Lite | 23 (7 not in the full set: Albanian, Burmese, Hungarian, Odia, Slovak, Tajik, Welsh) | 400, balanced between CS and CA |
+
+Repository layout:
+
+* `backend/`: FastAPI service (Python 3.12): dataset cache, OCI calls, SSE
+  streaming, runs history.
+* `frontend/`: Next.js UI (evaluation and Runs pages).
+* `specs/001-multilingual-evaluation.md`: scope, design decisions, API,
+  acceptance criteria, and verification notes.
+* `tests/`: unit tests (no network or credentials needed).
 
 ## Prerequisites
 
@@ -79,7 +139,6 @@ choice is saved with the results; use the same one when comparing models.
   and some gpt-oss deployments for `none`. The run then stops at once with
   the service error; choose **Model default**. Others, such as Llama, ignore it.
 
-
 ## Run
 
 In two terminals, from the repository root:
@@ -97,8 +156,8 @@ backend when Python code changes (edits to `.env` still need a manual
 restart). Optional variables: `CONDA_ENV`, `HOST`, and `PORT` for the backend,
 `PORT` for the UI (add a new UI origin to `CORS_ORIGINS`).
 
-Open <http://localhost:3000>, choose model, language, and number of
-questions, and press **Start evaluation**. The seed is required and is
+Open <http://localhost:3000>, choose model, reasoning effort, dataset,
+language, and number of questions, and press **Start evaluation**. The seed is required and is
 pre-filled with `DEFAULT_SEED` (42): the same seed, dataset, language, and
 number of questions always select the same questions, so keep it fixed when
 comparing models. **Stop** ends the run; results received so far are kept.
@@ -111,8 +170,9 @@ The **Runs** page (<http://localhost:3000/runs>) lists every result file in
 `results/`, newest first, with accuracy, interval, invalid and error counts,
 latency, and status. Filter by model, dataset, language, and reasoning effort;
 click a run to see its breakdowns and answers. Stopped (partial) runs are
-hidden unless **Show stopped runs** is checked; their files are kept. Runs saved before the effort
-was recorded show "not recorded" (on-demand OpenAI models then got `low`).
+hidden unless **Show stopped runs** is checked; their files are kept. Runs
+saved before the effort was recorded show "not recorded" (on-demand OpenAI
+models then got `low`).
 
 The first run of a language downloads its Parquet file (a few MB, less for
 Lite) into `data/cache/<dataset>/`. Each run is saved as JSON in `results/`.
@@ -143,6 +203,18 @@ npm --prefix frontend run lint
 ```
 
 Unit tests use local fixtures and a fake model: no network or credentials.
+
+## Limitations
+
+* Global-MMLU inherits MMLU's known issues (some wrong or ambiguous
+  questions, likely training-data contamination, scores near the ceiling for
+  top models), and translation quality varies by language.
+* Translated questions keep their mostly Western content: they measure
+  understanding in a language, not local knowledge.
+* The instruction of the prompt is in English; question and options are in
+  the target language.
+* Cohere chat models (`CohereChatRequest` format) and authentication methods
+  other than the OCI user principal are not supported yet.
 
 ## Costs and cleanup
 
