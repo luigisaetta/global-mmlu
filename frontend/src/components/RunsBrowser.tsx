@@ -3,7 +3,8 @@
 /**
  * Runs history: the result files saved by the backend, filterable by model,
  * dataset, language, and reasoning effort, with accuracy and 95% confidence
- * interval. Stopped runs are hidden unless "Show stopped runs" is checked.
+ * interval, sorted by date or by accuracy. Stopped runs are hidden unless
+ * "Show stopped runs" is checked.
  * Selecting a run shows its breakdowns and answers.
  */
 
@@ -55,6 +56,27 @@ const formatDate = (iso: string | null) =>
 
 const uniqueSorted = (values: string[]) => [...new Set(values)].sort();
 
+type SortOrder = "newest" | "accuracy";
+
+const SORT_LABELS: Record<SortOrder, string> = {
+  newest: "Newest first",
+  accuracy: "Accuracy (high to low)",
+};
+
+const byNewest = (a: RunSummary, b: RunSummary) =>
+  (b.saved_at ?? "").localeCompare(a.saved_at ?? "");
+
+/** Sort runs; ties on accuracy are broken by the newer run first. */
+function sortRuns(runs: RunSummary[], order: SortOrder): RunSummary[] {
+  const sorted = [...runs];
+  if (order === "accuracy") {
+    sorted.sort((a, b) => b.accuracy - a.accuracy || byNewest(a, b));
+  } else {
+    sorted.sort(byNewest);
+  }
+  return sorted;
+}
+
 export default function RunsBrowser() {
   const [runs, setRuns] = useState<RunSummary[]>([]);
   const [datasets, setDatasets] = useState<DatasetInfo[]>([]);
@@ -63,6 +85,7 @@ export default function RunsBrowser() {
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   // Stopped runs are partial; they stay on disk but are hidden by default.
   const [showStopped, setShowStopped] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOrder>("newest");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
@@ -129,13 +152,16 @@ export default function RunsBrowser() {
   );
 
   const stoppedCount = runs.filter((r) => r.stopped).length;
-  const visible = runs.filter(
-    (r) =>
-      (showStopped || !r.stopped) &&
-      (filters.model === ALL || r.model_id === filters.model) &&
-      (filters.dataset === ALL || r.dataset === filters.dataset) &&
-      (filters.language === ALL || r.language === filters.language) &&
-      (filters.effort === ALL || effortKey(r) === filters.effort),
+  const visible = sortRuns(
+    runs.filter(
+      (r) =>
+        (showStopped || !r.stopped) &&
+        (filters.model === ALL || r.model_id === filters.model) &&
+        (filters.dataset === ALL || r.dataset === filters.dataset) &&
+        (filters.language === ALL || r.language === filters.language) &&
+        (filters.effort === ALL || effortKey(r) === filters.effort),
+    ),
+    sortOrder,
   );
 
   const setFilter = (name: keyof Filters) => (value: string) =>
@@ -147,8 +173,8 @@ export default function RunsBrowser() {
       <header className="header">
         <h1>Runs</h1>
         <p className="muted">
-          Saved evaluations from the backend&apos;s <code>results/</code> folder, newest
-          first. Intervals are 95% Wilson confidence intervals.
+          Saved evaluations from the backend&apos;s <code>results/</code> folder, sorted
+          by date or by accuracy. Intervals are 95% Wilson confidence intervals.
         </p>
       </header>
 
@@ -183,6 +209,19 @@ export default function RunsBrowser() {
             format={effortLabel}
             onChange={setFilter("effort")}
           />
+          <label className="filter">
+            Sort by
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            >
+              {(Object.keys(SORT_LABELS) as SortOrder[]).map((order) => (
+                <option key={order} value={order}>
+                  {SORT_LABELS[order]}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="toggle">
             <input
               type="checkbox"

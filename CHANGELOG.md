@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-10-20: The Runs page can sort runs by decreasing accuracy as well as
+  by date.
 * 2026-10-18: `docs/findings-2026-10-18.md`: conclusions from the 26 completed
   250-question runs (language gap, reasoning effort, CS/CA, variability).
 * 2026-10-18: README rewritten with a project overview, motivation, features,

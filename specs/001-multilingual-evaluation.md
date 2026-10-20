@@ -21,8 +21,9 @@ is in progress.
 * A local Next.js UI to select model, dataset, language, and number of questions,
   start and stop a run, and watch progress, accuracy with its 95% confidence
   interval, and per-question results.
-* A Runs page that lists the saved result files with filters and shows the
-  details of one run. Stopped runs are hidden by default (toggle to show
+* A Runs page that lists the saved result files with filters, sorted by date
+  (newest first, default) or by decreasing accuracy (ties: newer first), and
+  shows the details of one run. Stopped runs are hidden by default (toggle to show
   them); hiding never deletes files.
 
 ## Non-goals (for now)
