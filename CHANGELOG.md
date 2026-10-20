@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-10-20: The Runs page can also sort by the lower bound of the 95%
+  interval, which ranks large, reliable runs above small lucky ones.
 * 2026-10-20: The Runs page can sort runs by decreasing accuracy as well as
   by date.
 * 2026-10-18: `docs/findings-2026-10-18.md`: conclusions from the 26 completed

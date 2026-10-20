@@ -3,7 +3,8 @@
 /**
  * Runs history: the result files saved by the backend, filterable by model,
  * dataset, language, and reasoning effort, with accuracy and 95% confidence
- * interval, sorted by date or by accuracy. Stopped runs are hidden unless
+ * interval, sorted by date, by accuracy, or by the lower bound of the
+ * interval (which favors large, reliable runs). Stopped runs are hidden unless
  * "Show stopped runs" is checked.
  * Selecting a run shows its breakdowns and answers.
  */
@@ -56,21 +57,31 @@ const formatDate = (iso: string | null) =>
 
 const uniqueSorted = (values: string[]) => [...new Set(values)].sort();
 
-type SortOrder = "newest" | "accuracy";
+type SortOrder = "newest" | "accuracy" | "ciLow";
 
 const SORT_LABELS: Record<SortOrder, string> = {
   newest: "Newest first",
   accuracy: "Accuracy (high to low)",
+  ciLow: "Lower 95% bound (high to low)",
 };
 
 const byNewest = (a: RunSummary, b: RunSummary) =>
   (b.saved_at ?? "").localeCompare(a.saved_at ?? "");
 
-/** Sort runs; ties on accuracy are broken by the newer run first. */
+/**
+ * Sort runs. "ciLow" ranks by the lower bound of the 95% interval: a small
+ * run at 100% (3/3 gives 43.9–100%) falls below a large run at 95%, so the
+ * top of the list is what the data supports. Ties go to the higher accuracy,
+ * then to the newer run.
+ */
 function sortRuns(runs: RunSummary[], order: SortOrder): RunSummary[] {
   const sorted = [...runs];
   if (order === "accuracy") {
     sorted.sort((a, b) => b.accuracy - a.accuracy || byNewest(a, b));
+  } else if (order === "ciLow") {
+    sorted.sort(
+      (a, b) => b.ci_low - a.ci_low || b.accuracy - a.accuracy || byNewest(a, b),
+    );
   } else {
     sorted.sort(byNewest);
   }
@@ -174,7 +185,7 @@ export default function RunsBrowser() {
         <h1>Runs</h1>
         <p className="muted">
           Saved evaluations from the backend&apos;s <code>results/</code> folder, sorted
-          by date or by accuracy. Intervals are 95% Wilson confidence intervals.
+          by date, accuracy, or lower bound of the 95% Wilson confidence interval.
         </p>
       </header>
 

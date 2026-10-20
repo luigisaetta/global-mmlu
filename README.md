@@ -167,8 +167,10 @@ Accuracy tile, as a shaded band in the running chart, and for each
 category in the breakdown (bar whiskers and text).
 
 The **Runs** page (<http://localhost:3000/runs>) lists every result file in
-`results/`, newest first or by decreasing accuracy, with accuracy, interval,
-invalid and error counts, latency, and status. Filter by model, dataset, language, and reasoning effort;
+`results/` with accuracy, interval, invalid and error counts, latency, and
+status. Sort them newest first, by accuracy, or by the lower bound of the 95%
+interval: the last one puts large, reliable runs on top, while sorting by
+accuracy alone favors small lucky runs (3/3 is 100%, but 43.9–100%). Filter by model, dataset, language, and reasoning effort;
 click a run to see its breakdowns and answers. Stopped (partial) runs are
 hidden unless **Show stopped runs** is checked; their files are kept. Runs
 saved before the effort was recorded show "not recorded" (on-demand OpenAI
