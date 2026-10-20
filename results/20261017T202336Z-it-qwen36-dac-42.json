@@ -1,0 +1,23 @@
+{
+  "saved_at": "2026-10-17T20:23:36.945383+00:00",
+  "summary": {
+    "run_id": "20261017T202336Z-it-qwen36-dac-42",
+    "model_id": "qwen36-dac",
+    "model_target": "ocid1.generativeaiendpoint.oc1.eu-frankfurt-1.amaaaaaa2xxap7yaalioqchm4k2d6piq5cvvrsxrulzvhkq26osyawdzxl2q",
+    "reasoning_effort": "HIGH",
+    "language": "it",
+    "seed": 42,
+    "requested": 100,
+    "completed": 0,
+    "total": 0,
+    "correct": 0,
+    "accuracy": 0.0,
+    "by_subject_category": {},
+    "by_cultural_sensitivity": {},
+    "invalid": 0,
+    "errors": 0,
+    "mean_latency_s": 0.0,
+    "stopped": true
+  },
+  "results": []
+}

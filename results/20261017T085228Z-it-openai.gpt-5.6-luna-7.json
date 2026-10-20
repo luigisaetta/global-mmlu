@@ -1,0 +1,316 @@
+{
+  "saved_at": "2026-10-17T08:52:34.030322+00:00",
+  "summary": {
+    "run_id": "20261017T085228Z-it-openai.gpt-5.6-luna-7",
+    "model_id": "openai.gpt-5.6-luna",
+    "language": "it",
+    "seed": 7,
+    "requested": 100,
+    "completed": 18,
+    "total": 18,
+    "correct": 15,
+    "accuracy": 0.8333333333333334,
+    "by_subject_category": {
+      "Business": {
+        "total": 1,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      "Humanities": {
+        "total": 6,
+        "correct": 6,
+        "accuracy": 1.0
+      },
+      "Medical": {
+        "total": 1,
+        "correct": 1,
+        "accuracy": 1.0
+      },
+      "STEM": {
+        "total": 6,
+        "correct": 4,
+        "accuracy": 0.6666666666666666
+      },
+      "Social Sciences": {
+        "total": 4,
+        "correct": 4,
+        "accuracy": 1.0
+      }
+    },
+    "by_cultural_sensitivity": {
+      "-": {
+        "total": 11,
+        "correct": 8,
+        "accuracy": 0.7272727272727273
+      },
+      "CA": {
+        "total": 5,
+        "correct": 5,
+        "accuracy": 1.0
+      },
+      "CS": {
+        "total": 2,
+        "correct": 2,
+        "accuracy": 1.0
+      }
+    },
+    "invalid": 0,
+    "errors": 0,
+    "mean_latency_s": 1.12,
+    "stopped": true
+  },
+  "results": [
+    {
+      "index": 0,
+      "sample_id": "high_school_psychology/test/418",
+      "subject": "high_school_psychology",
+      "subject_category": "Social Sciences",
+      "cultural_sensitivity_label": "-",
+      "expected": "D",
+      "predicted": "D",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 2.442,
+      "error": null,
+      "reply": "D"
+    },
+    {
+      "index": 1,
+      "sample_id": "formal_logic/test/28",
+      "subject": "formal_logic",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "CA",
+      "expected": "A",
+      "predicted": "A",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.455,
+      "error": null,
+      "reply": "A"
+    },
+    {
+      "index": 2,
+      "sample_id": "international_law/test/25",
+      "subject": "international_law",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "-",
+      "expected": "A",
+      "predicted": "A",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.545,
+      "error": null,
+      "reply": "A"
+    },
+    {
+      "index": 3,
+      "sample_id": "professional_law/test/33",
+      "subject": "professional_law",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "CS",
+      "expected": "C",
+      "predicted": "C",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.069,
+      "error": null,
+      "reply": "C"
+    },
+    {
+      "index": 4,
+      "sample_id": "college_biology/test/39",
+      "subject": "college_biology",
+      "subject_category": "STEM",
+      "cultural_sensitivity_label": "-",
+      "expected": "A",
+      "predicted": "C",
+      "correct": false,
+      "invalid": false,
+      "latency_s": 1.229,
+      "error": null,
+      "reply": "C"
+    },
+    {
+      "index": 5,
+      "sample_id": "college_mathematics/test/90",
+      "subject": "college_mathematics",
+      "subject_category": "STEM",
+      "cultural_sensitivity_label": "CA",
+      "expected": "B",
+      "predicted": "B",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.064,
+      "error": null,
+      "reply": "B"
+    },
+    {
+      "index": 6,
+      "sample_id": "sociology/test/51",
+      "subject": "sociology",
+      "subject_category": "Social Sciences",
+      "cultural_sensitivity_label": "CA",
+      "expected": "B",
+      "predicted": "B",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.123,
+      "error": null,
+      "reply": "B"
+    },
+    {
+      "index": 7,
+      "sample_id": "moral_scenarios/test/266",
+      "subject": "moral_scenarios",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "-",
+      "expected": "C",
+      "predicted": "C",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 0.59,
+      "error": null,
+      "reply": "C"
+    },
+    {
+      "index": 8,
+      "sample_id": "computer_security/test/71",
+      "subject": "computer_security",
+      "subject_category": "STEM",
+      "cultural_sensitivity_label": "CA",
+      "expected": "B",
+      "predicted": "B",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 0.845,
+      "error": null,
+      "reply": "B"
+    },
+    {
+      "index": 9,
+      "sample_id": "high_school_world_history/test/139",
+      "subject": "high_school_world_history",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "-",
+      "expected": "D",
+      "predicted": "D",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 0.676,
+      "error": null,
+      "reply": "D"
+    },
+    {
+      "index": 10,
+      "sample_id": "nutrition/test/140",
+      "subject": "nutrition",
+      "subject_category": "Medical",
+      "cultural_sensitivity_label": "CA",
+      "expected": "A",
+      "predicted": "A",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.495,
+      "error": null,
+      "reply": "A"
+    },
+    {
+      "index": 11,
+      "sample_id": "college_chemistry/test/54",
+      "subject": "college_chemistry",
+      "subject_category": "STEM",
+      "cultural_sensitivity_label": "-",
+      "expected": "C",
+      "predicted": "B",
+      "correct": false,
+      "invalid": false,
+      "latency_s": 1.404,
+      "error": null,
+      "reply": "B"
+    },
+    {
+      "index": 12,
+      "sample_id": "moral_disputes/test/146",
+      "subject": "moral_disputes",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "-",
+      "expected": "C",
+      "predicted": "C",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 0.741,
+      "error": null,
+      "reply": "C"
+    },
+    {
+      "index": 13,
+      "sample_id": "high_school_geography/test/70",
+      "subject": "high_school_geography",
+      "subject_category": "Social Sciences",
+      "cultural_sensitivity_label": "CS",
+      "expected": "B",
+      "predicted": "B",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 0.526,
+      "error": null,
+      "reply": "B"
+    },
+    {
+      "index": 15,
+      "sample_id": "college_physics/test/39",
+      "subject": "college_physics",
+      "subject_category": "STEM",
+      "cultural_sensitivity_label": "-",
+      "expected": "D",
+      "predicted": "D",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.011,
+      "error": null,
+      "reply": "D"
+    },
+    {
+      "index": 16,
+      "sample_id": "marketing/test/54",
+      "subject": "marketing",
+      "subject_category": "Business",
+      "cultural_sensitivity_label": "-",
+      "expected": "A",
+      "predicted": "C",
+      "correct": false,
+      "invalid": false,
+      "latency_s": 1.568,
+      "error": null,
+      "reply": "C"
+    },
+    {
+      "index": 17,
+      "sample_id": "machine_learning/test/16",
+      "subject": "machine_learning",
+      "subject_category": "STEM",
+      "cultural_sensitivity_label": "-",
+      "expected": "C",
+      "predicted": "C",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 0.865,
+      "error": null,
+      "reply": "C"
+    },
+    {
+      "index": 19,
+      "sample_id": "high_school_macroeconomics/test/105",
+      "subject": "high_school_macroeconomics",
+      "subject_category": "Social Sciences",
+      "cultural_sensitivity_label": "-",
+      "expected": "B",
+      "predicted": "B",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 0.516,
+      "error": null,
+      "reply": "B"
+    }
+  ]
+}

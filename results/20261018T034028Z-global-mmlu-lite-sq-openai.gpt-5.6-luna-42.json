@@ -1,0 +1,84 @@
+{
+  "saved_at": "2026-10-18T03:40:30.318775+00:00",
+  "summary": {
+    "run_id": "20261018T034028Z-global-mmlu-lite-sq-openai.gpt-5.6-luna-42",
+    "model_id": "openai.gpt-5.6-luna",
+    "model_target": "openai.gpt-5.6-luna",
+    "reasoning_effort": null,
+    "dataset": "global-mmlu-lite",
+    "language": "sq",
+    "seed": 42,
+    "requested": 3,
+    "completed": 3,
+    "total": 3,
+    "correct": 3,
+    "accuracy": 1.0,
+    "by_subject_category": {
+      "Business": {
+        "total": 1,
+        "correct": 1,
+        "accuracy": 1.0
+      },
+      "Humanities": {
+        "total": 2,
+        "correct": 2,
+        "accuracy": 1.0
+      }
+    },
+    "by_cultural_sensitivity": {
+      "CS": {
+        "total": 3,
+        "correct": 3,
+        "accuracy": 1.0
+      }
+    },
+    "invalid": 0,
+    "errors": 0,
+    "mean_latency_s": 1.618,
+    "stopped": false
+  },
+  "results": [
+    {
+      "index": 0,
+      "sample_id": "professional_law/test/108",
+      "subject": "professional_law",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "CS",
+      "expected": "D",
+      "predicted": "D",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 2.297,
+      "error": null,
+      "reply": "D"
+    },
+    {
+      "index": 1,
+      "sample_id": "high_school_european_history/test/11",
+      "subject": "high_school_european_history",
+      "subject_category": "Humanities",
+      "cultural_sensitivity_label": "CS",
+      "expected": "C",
+      "predicted": "C",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.278,
+      "error": null,
+      "reply": "C"
+    },
+    {
+      "index": 2,
+      "sample_id": "business_ethics/test/74",
+      "subject": "business_ethics",
+      "subject_category": "Business",
+      "cultural_sensitivity_label": "CS",
+      "expected": "B",
+      "predicted": "B",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 1.278,
+      "error": null,
+      "reply": "B"
+    }
+  ]
+}
