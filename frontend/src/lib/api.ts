@@ -153,6 +153,18 @@ export const fetchRuns = () =>
 export const fetchRun = (runId: string) =>
   getJson<RunDetail>(`/api/runs/${encodeURIComponent(runId)}`);
 
+export async function deleteRun(runId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/runs/${encodeURIComponent(runId)}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(
+      typeof body?.detail === "string" ? body.detail : `HTTP ${response.status}`,
+    );
+  }
+}
+
 export const fetchDatasets = () =>
   getJson<{ default: string; datasets: DatasetInfo[] }>("/api/datasets");
 

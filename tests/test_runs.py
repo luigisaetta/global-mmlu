@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from app.runs import RunNotFoundError, list_runs, load_run
+from app.runs import RunNotFoundError, delete_run, list_runs, load_run
 
 OLD_RUN = {  # first file format: no dataset, effort, stopped, target, or interval
     "saved_at": "2026-10-17T08:47:48+00:00",
@@ -85,3 +85,24 @@ def test_load_run_adds_intervals_to_breakdowns(results_dir):
 def test_load_run_rejects_unknown_and_unsafe_ids(results_dir, run_id):
     with pytest.raises(RunNotFoundError):
         load_run(results_dir, run_id)
+
+
+def test_delete_removes_only_the_requested_run(results_dir):
+    delete_run(results_dir, "old-run")
+    assert not (results_dir / "old-run.json").exists()
+    assert [r["run_id"] for r in list_runs(results_dir)] == ["new-run"]
+    assert load_run(results_dir, "new-run")["summary"]["stopped"] is True
+    with pytest.raises(RunNotFoundError):
+        delete_run(results_dir, "old-run")
+
+
+@pytest.mark.parametrize(
+    "run_id", ["absent", "../outside", "old-run/../x", "old-run\n", ""]
+)
+def test_delete_rejects_unknown_and_unsafe_ids(results_dir, run_id):
+    outside = results_dir.parent / "outside.json"
+    outside.write_text("keep me")
+    with pytest.raises(RunNotFoundError):
+        delete_run(results_dir, run_id)
+    assert outside.read_text() == "keep me"
+    assert len(list_runs(results_dir)) == 2

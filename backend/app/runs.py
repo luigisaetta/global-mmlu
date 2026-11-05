@@ -110,3 +110,16 @@ def load_run(results_dir: Path, run_id: str) -> dict:
         },
         "results": payload.get("results", []),
     }
+
+
+def delete_run(results_dir: Path, run_id: str) -> None:
+    """Delete a saved result file; reject missing runs and unsafe IDs."""
+    if not _RUN_ID_RE.fullmatch(run_id):
+        raise RunNotFoundError(run_id)
+    path = results_dir / f"{run_id}.json"
+    if not path.is_file():
+        raise RunNotFoundError(run_id)
+    try:
+        path.unlink()
+    except FileNotFoundError as exc:
+        raise RunNotFoundError(run_id) from exc

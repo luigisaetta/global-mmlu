@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* 2026-11-05: Delete saved runs from the Runs page with a trash button and
+  confirmation, backed by `DELETE /api/runs/{run_id}`.
 * 2026-10-20: The Runs page can also sort by the lower bound of the 95%
   interval, which ranks large, reliable runs above small lucky ones.
 * 2026-10-20: The Runs page can sort runs by decreasing accuracy as well as

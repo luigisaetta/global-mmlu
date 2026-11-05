@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Literal
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -34,7 +34,7 @@ from .dataset import (
 )
 from .evaluator import RunConfig, run_evaluation
 from .llm_client import REASONING_EFFORTS, ChatModel, OciChatModel
-from .runs import RunNotFoundError, list_runs, load_run
+from .runs import RunNotFoundError, delete_run, list_runs, load_run
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -112,7 +112,7 @@ app = FastAPI(title="Global-MMLU multilingual evaluation", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -190,6 +190,21 @@ def get_run(run_id: str, settings: Settings = Depends(get_settings)) -> dict:
         return load_run(settings.results_dir, run_id)
     except RunNotFoundError as exc:
         raise HTTPException(404, f"Run not found: {run_id}") from exc
+
+
+@app.delete("/api/runs/{run_id}", status_code=204)
+def remove_run(run_id: str, settings: Settings = Depends(get_settings)) -> Response:
+    """Permanently delete one saved run, returning 404 if it does not exist."""
+    try:
+        delete_run(settings.results_dir, run_id)
+    except RunNotFoundError as exc:
+        raise HTTPException(404, f"Run not found: {run_id}") from exc
+    except OSError as exc:
+        logger.exception("Could not delete run %s", run_id)
+        raise HTTPException(
+            500, "Could not delete the saved run. Please try again."
+        ) from exc
+    return Response(status_code=204)
 
 
 def _sse(event: dict) -> str:

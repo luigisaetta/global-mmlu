@@ -175,6 +175,8 @@ click a run to see its breakdowns and answers. Stopped (partial) runs are
 hidden unless **Show stopped runs** is checked; their files are kept. Runs
 saved before the effort was recorded show "not recorded" (on-demand OpenAI
 models then got `low`).
+Use the trash button on a run's row to permanently delete its saved JSON
+results, after confirming. The list updates immediately after deletion.
 
 The first run of a language downloads its Parquet file (a few MB, less for
 Lite) into `data/cache/<dataset>/`. Each run is saved as JSON in `results/`.
@@ -193,7 +195,7 @@ curl -N -X POST http://localhost:8000/api/evaluations \
 The response is an SSE stream of `status`, `start`, `result`, and `done`
 events (see the specification). Other endpoints: `GET /api/models`,
 `GET /api/datasets`, `GET /api/languages?dataset=...`, `GET /api/runs`,
-`GET /api/runs/{run_id}`, `GET /api/health`.
+`GET /api/runs/{run_id}`, `DELETE /api/runs/{run_id}`, `GET /api/health`.
 
 ## Checks
 

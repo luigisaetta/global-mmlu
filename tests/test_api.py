@@ -212,3 +212,40 @@ def test_runs_api_lists_and_returns_a_saved_run(client):
     detail = http.get(f"/api/runs/{done['run_id']}").json()
     assert detail["summary"]["seed"] == 5 and len(detail["results"]) == 3
     assert http.get("/api/runs/not-a-run").status_code == 404
+
+
+def test_runs_api_deletes_a_saved_run(client):
+    http, _ = client
+    body = {"model_id": "fake.model", "language": "it", "num_questions": 3, "seed": 5}
+    done = _events(http.post("/api/evaluations", json=body))[-1]
+    url = f"/api/runs/{done['run_id']}"
+    response = http.delete(url)
+    assert response.status_code == 204 and response.content == b""
+    assert http.get("/api/runs").json()["runs"] == []
+    assert http.get(url).status_code == 404
+    assert http.delete(url).status_code == 404
+
+
+def test_runs_api_reports_delete_failure(client, monkeypatch):
+    http, _ = client
+
+    def fail_delete(*_args):
+        raise PermissionError("private filesystem details")
+
+    monkeypatch.setattr(main, "delete_run", fail_delete)
+    response = http.delete("/api/runs/example")
+    assert response.status_code == 500
+    assert "private filesystem details" not in response.text
+
+
+def test_cors_allows_delete_from_frontend(client):
+    http, _ = client
+    response = http.options(
+        "/api/runs/example",
+        headers={
+            "Origin": main.get_settings().cors_origins[0],
+            "Access-Control-Request-Method": "DELETE",
+        },
+    )
+    assert response.status_code == 200
+    assert "DELETE" in response.headers["access-control-allow-methods"]

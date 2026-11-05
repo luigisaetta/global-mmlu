@@ -16,6 +16,7 @@ import {
   DatasetInfo,
   RunDetail,
   RunSummary,
+  deleteRun,
   fetchDatasets,
   fetchRun,
   fetchRuns,
@@ -100,6 +101,8 @@ export default function RunsBrowser() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<RunDetail | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Fetches runs and dataset names; state is only set in the callbacks.
   function fetchAll() {
@@ -147,6 +150,26 @@ export default function RunsBrowser() {
     setSelectedId(runId === selectedId ? null : runId);
   }
 
+  async function removeRun(runId: string) {
+    if (deletingId || loading) return;
+    if (!window.confirm(
+      `Delete run "${runId}"?\n\nIts saved results will be permanently deleted. This cannot be undone.`,
+    )) return;
+    setDeletingId(runId);
+    setDeleteError(null);
+    try {
+      await deleteRun(runId);
+      setRuns((current) => current.filter((run) => run.run_id !== runId));
+      setSelectedId((current) => (current === runId ? null : current));
+    } catch (error) {
+      setDeleteError(
+        `Cannot delete run: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const languageName = (code: string) =>
     datasets.flatMap((d) => d.languages).find((l) => l.code === code)?.name ?? code;
   const datasetName = (key: string) => datasets.find((d) => d.key === key)?.name ?? key;
@@ -190,6 +213,7 @@ export default function RunsBrowser() {
       </header>
 
       {loadError && <div className="alert">{loadError}</div>}
+      {deleteError && <div className="alert" role="alert">{deleteError}</div>}
 
       <section className="card">
         <div className="filters">
@@ -250,7 +274,12 @@ export default function RunsBrowser() {
             >
               Clear filters
             </button>
-            <button type="button" className="chip" onClick={refresh} disabled={loading}>
+            <button
+              type="button"
+              className="chip"
+              onClick={refresh}
+              disabled={loading || deletingId !== null}
+            >
               {loading ? "Loading…" : "Refresh"}
             </button>
           </div>
@@ -276,6 +305,7 @@ export default function RunsBrowser() {
                 <th>Invalid · err</th>
                 <th>Latency</th>
                 <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -307,11 +337,39 @@ export default function RunsBrowser() {
                       {r.stopped ? "stopped" : "done"}
                     </span>
                   </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="delete-run"
+                      title={deletingId === r.run_id ? "Deleting…" : "Delete run"}
+                      aria-label={`Delete run ${r.run_id}`}
+                      aria-busy={deletingId === r.run_id}
+                      disabled={loading || deletingId !== null}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void removeRun(r.run_id);
+                      }}
+                    >
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6" />
+                      </svg>
+                    </button>
+                  </td>
                 </tr>
               ))}
               {!loading && visible.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="muted">
+                  <td colSpan={13} className="muted">
                     No runs match the filters.
                   </td>
                 </tr>

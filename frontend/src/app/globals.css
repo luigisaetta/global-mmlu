@@ -534,3 +534,31 @@ td.strong-cell {
 .run-detail {
   margin-top: 20px;
 }
+
+.delete-run {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ko);
+  cursor: pointer;
+}
+
+.delete-run:hover:not(:disabled) {
+  background: var(--ko-soft);
+  border-color: var(--ko);
+}
+
+.delete-run:focus-visible {
+  outline: 2px solid var(--ko);
+  outline-offset: 2px;
+}
+
+.delete-run:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
