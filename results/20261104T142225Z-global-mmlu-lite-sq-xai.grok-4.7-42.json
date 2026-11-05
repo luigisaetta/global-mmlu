@@ -1,0 +1,26 @@
+{
+  "saved_at": "2026-11-04T14:23:23.027460+00:00",
+  "summary": {
+    "run_id": "20261104T142225Z-global-mmlu-lite-sq-xai.grok-4.7-42",
+    "model_id": "xai.grok-4.7",
+    "model_target": "xai.grok-4.7",
+    "reasoning_effort": "NONE",
+    "dataset": "global-mmlu-lite",
+    "language": "sq",
+    "seed": 42,
+    "requested": 400,
+    "completed": 0,
+    "total": 0,
+    "correct": 0,
+    "accuracy": 0.0,
+    "ci_low": 0.0,
+    "ci_high": 1.0,
+    "by_subject_category": {},
+    "by_cultural_sensitivity": {},
+    "invalid": 0,
+    "errors": 0,
+    "mean_latency_s": 0.0,
+    "stopped": true
+  },
+  "results": []
+}

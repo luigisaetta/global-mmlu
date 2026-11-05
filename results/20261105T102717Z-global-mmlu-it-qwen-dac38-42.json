@@ -1,67 +1,90 @@
 {
-  "saved_at": "2026-10-17T09:00:15.555364+00:00",
+  "saved_at": "2026-11-05T10:28:21.919441+00:00",
   "summary": {
-    "run_id": "20261017T085957Z-sr-openai.gpt-5.6-luna-42",
-    "model_id": "openai.gpt-5.6-luna",
-    "language": "sr",
+    "run_id": "20261105T102717Z-global-mmlu-it-qwen-dac38-42",
+    "model_id": "qwen-dac38",
+    "model_target": "ocid1.generativeaiendpoint.oc1.eu-frankfurt-1.amaaaaaa2xxap7yayyyi2xk3zhg2ptka5niqqpp7eavf5jyqzs42f6lcfb4q",
+    "reasoning_effort": "LOW",
+    "dataset": "global-mmlu",
+    "language": "it",
     "seed": 42,
     "requested": 50,
     "completed": 50,
     "total": 50,
     "correct": 42,
     "accuracy": 0.84,
+    "ci_low": 0.7148578382325514,
+    "ci_high": 0.916625793645991,
     "by_subject_category": {
       "Business": {
         "total": 3,
         "correct": 3,
-        "accuracy": 1.0
+        "accuracy": 1.0,
+        "ci_low": 0.43850296436068037,
+        "ci_high": 1.0
       },
       "Humanities": {
         "total": 14,
         "correct": 12,
-        "accuracy": 0.8571428571428571
+        "accuracy": 0.8571428571428571,
+        "ci_low": 0.600586202762663,
+        "ci_high": 0.959906079092351
       },
       "Medical": {
         "total": 6,
         "correct": 6,
-        "accuracy": 1.0
+        "accuracy": 1.0,
+        "ci_low": 0.6096657083436265,
+        "ci_high": 1.0
       },
       "Other": {
         "total": 1,
         "correct": 1,
-        "accuracy": 1.0
+        "accuracy": 1.0,
+        "ci_low": 0.2065493117918027,
+        "ci_high": 1.0
       },
       "STEM": {
         "total": 13,
         "correct": 12,
-        "accuracy": 0.9230769230769231
+        "accuracy": 0.9230769230769231,
+        "ci_low": 0.666860488286395,
+        "ci_high": 0.986289578909774
       },
       "Social Sciences": {
         "total": 13,
         "correct": 8,
-        "accuracy": 0.6153846153846154
+        "accuracy": 0.6153846153846154,
+        "ci_low": 0.3552289133643685,
+        "ci_high": 0.8229029231436777
       }
     },
     "by_cultural_sensitivity": {
       "-": {
         "total": 35,
         "correct": 27,
-        "accuracy": 0.7714285714285715
+        "accuracy": 0.7714285714285715,
+        "ci_low": 0.6098268297026581,
+        "ci_high": 0.8793412022723046
       },
       "CA": {
         "total": 14,
         "correct": 14,
-        "accuracy": 1.0
+        "accuracy": 1.0,
+        "ci_low": 0.7846891945970195,
+        "ci_high": 0.9999999999999999
       },
       "CS": {
         "total": 1,
         "correct": 1,
-        "accuracy": 1.0
+        "accuracy": 1.0,
+        "ci_low": 0.2065493117918027,
+        "ci_high": 1.0
       }
     },
-    "invalid": 0,
+    "invalid": 1,
     "errors": 0,
-    "mean_latency_s": 1.456,
+    "mean_latency_s": 5.07,
     "stopped": false
   },
   "results": [
@@ -75,9 +98,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.095,
+      "latency_s": 3.143,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 1,
@@ -89,9 +112,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 3.638,
+      "latency_s": 2.204,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 2,
@@ -103,9 +126,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.095,
+      "latency_s": 3.119,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 3,
@@ -114,12 +137,12 @@
       "subject_category": "Humanities",
       "cultural_sensitivity_label": "-",
       "expected": "B",
-      "predicted": "D",
-      "correct": false,
+      "predicted": "B",
+      "correct": true,
       "invalid": false,
-      "latency_s": 3.248,
+      "latency_s": 11.369,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nB"
     },
     {
       "index": 4,
@@ -131,9 +154,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.673,
+      "latency_s": 3.735,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 5,
@@ -145,9 +168,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.225,
+      "latency_s": 6.821,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 6,
@@ -159,9 +182,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.862,
+      "latency_s": 4.956,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 7,
@@ -170,12 +193,12 @@
       "subject_category": "STEM",
       "cultural_sensitivity_label": "-",
       "expected": "C",
-      "predicted": "B",
-      "correct": false,
+      "predicted": "C",
+      "correct": true,
       "invalid": false,
-      "latency_s": 1.015,
+      "latency_s": 5.066,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nC"
     },
     {
       "index": 8,
@@ -187,9 +210,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.439,
+      "latency_s": 10.032,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 9,
@@ -201,9 +224,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.955,
+      "latency_s": 2.656,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 10,
@@ -215,9 +238,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.039,
+      "latency_s": 7.49,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 11,
@@ -226,12 +249,12 @@
       "subject_category": "Humanities",
       "cultural_sensitivity_label": "-",
       "expected": "B",
-      "predicted": "D",
+      "predicted": null,
       "correct": false,
-      "invalid": false,
-      "latency_s": 6.333,
+      "invalid": true,
+      "latency_s": 26.249,
       "error": null,
-      "reply": "D"
+      "reply": ""
     },
     {
       "index": 12,
@@ -240,12 +263,12 @@
       "subject_category": "Humanities",
       "cultural_sensitivity_label": "-",
       "expected": "A",
-      "predicted": "A",
-      "correct": true,
+      "predicted": "C",
+      "correct": false,
       "invalid": false,
-      "latency_s": 4.071,
+      "latency_s": 5.536,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nC"
     },
     {
       "index": 13,
@@ -257,9 +280,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.883,
+      "latency_s": 1.941,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 14,
@@ -271,9 +294,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.026,
+      "latency_s": 2.659,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 15,
@@ -285,9 +308,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.028,
+      "latency_s": 4.48,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 16,
@@ -299,9 +322,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.125,
+      "latency_s": 4.255,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 17,
@@ -313,9 +336,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.528,
+      "latency_s": 1.738,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 18,
@@ -327,9 +350,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.713,
+      "latency_s": 3.276,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 19,
@@ -341,9 +364,9 @@
       "predicted": "B",
       "correct": false,
       "invalid": false,
-      "latency_s": 1.558,
+      "latency_s": 3.67,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 20,
@@ -355,9 +378,9 @@
       "predicted": "A",
       "correct": false,
       "invalid": false,
-      "latency_s": 1.535,
+      "latency_s": 3.335,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 21,
@@ -369,9 +392,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 2.678,
+      "latency_s": 4.716,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 22,
@@ -383,9 +406,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.189,
+      "latency_s": 1.622,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 23,
@@ -397,9 +420,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.618,
+      "latency_s": 2.858,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 24,
@@ -411,9 +434,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.02,
+      "latency_s": 2.76,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 25,
@@ -425,9 +448,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 2.869,
+      "latency_s": 8.347,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 26,
@@ -439,9 +462,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.158,
+      "latency_s": 5.6,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 27,
@@ -453,9 +476,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.131,
+      "latency_s": 4.304,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 28,
@@ -467,9 +490,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.46,
+      "latency_s": 22.015,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 29,
@@ -481,9 +504,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.717,
+      "latency_s": 2.363,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 30,
@@ -495,9 +518,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.135,
+      "latency_s": 3.452,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 31,
@@ -509,9 +532,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.819,
+      "latency_s": 1.864,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 32,
@@ -523,9 +546,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.457,
+      "latency_s": 4.1,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 33,
@@ -537,9 +560,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.381,
+      "latency_s": 5.0,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 34,
@@ -551,9 +574,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.216,
+      "latency_s": 3.399,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 35,
@@ -565,9 +588,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.6,
+      "latency_s": 3.124,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 36,
@@ -579,9 +602,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.253,
+      "latency_s": 3.251,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 37,
@@ -593,9 +616,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.879,
+      "latency_s": 4.745,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 38,
@@ -607,9 +630,9 @@
       "predicted": "D",
       "correct": false,
       "invalid": false,
-      "latency_s": 1.611,
+      "latency_s": 6.647,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 39,
@@ -621,9 +644,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.447,
+      "latency_s": 3.741,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 40,
@@ -635,9 +658,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.82,
+      "latency_s": 8.443,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 41,
@@ -649,9 +672,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.989,
+      "latency_s": 3.221,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 42,
@@ -660,12 +683,12 @@
       "subject_category": "STEM",
       "cultural_sensitivity_label": "-",
       "expected": "C",
-      "predicted": "C",
-      "correct": true,
+      "predicted": "D",
+      "correct": false,
       "invalid": false,
-      "latency_s": 2.037,
+      "latency_s": 6.423,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nD"
     },
     {
       "index": 43,
@@ -677,9 +700,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.021,
+      "latency_s": 2.882,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     },
     {
       "index": 44,
@@ -691,9 +714,9 @@
       "predicted": "D",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.583,
+      "latency_s": 5.629,
       "error": null,
-      "reply": "D"
+      "reply": "\n\nD"
     },
     {
       "index": 45,
@@ -705,9 +728,9 @@
       "predicted": "B",
       "correct": false,
       "invalid": false,
-      "latency_s": 2.047,
+      "latency_s": 3.802,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 46,
@@ -719,9 +742,9 @@
       "predicted": "C",
       "correct": false,
       "invalid": false,
-      "latency_s": 0.63,
+      "latency_s": 2.49,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 47,
@@ -733,9 +756,9 @@
       "predicted": "C",
       "correct": true,
       "invalid": false,
-      "latency_s": 1.503,
+      "latency_s": 3.703,
       "error": null,
-      "reply": "C"
+      "reply": "\n\nC"
     },
     {
       "index": 48,
@@ -747,9 +770,9 @@
       "predicted": "B",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.865,
+      "latency_s": 2.122,
       "error": null,
-      "reply": "B"
+      "reply": "\n\nB"
     },
     {
       "index": 49,
@@ -761,9 +784,9 @@
       "predicted": "A",
       "correct": true,
       "invalid": false,
-      "latency_s": 0.601,
+      "latency_s": 3.148,
       "error": null,
-      "reply": "A"
+      "reply": "\n\nA"
     }
   ]
 }

@@ -1,0 +1,120 @@
+{
+  "saved_at": "2026-11-04T14:21:15.156139+00:00",
+  "summary": {
+    "run_id": "20261104T141909Z-global-mmlu-lite-sq-xai.grok-4.7-42",
+    "model_id": "xai.grok-4.7",
+    "model_target": "xai.grok-4.7",
+    "reasoning_effort": "LOW",
+    "dataset": "global-mmlu-lite",
+    "language": "sq",
+    "seed": 42,
+    "requested": 400,
+    "completed": 4,
+    "total": 4,
+    "correct": 4,
+    "accuracy": 1.0,
+    "ci_low": 0.5101091596030786,
+    "ci_high": 0.9999999999999999,
+    "by_subject_category": {
+      "Business": {
+        "total": 1,
+        "correct": 1,
+        "accuracy": 1.0,
+        "ci_low": 0.2065493117918027,
+        "ci_high": 1.0
+      },
+      "STEM": {
+        "total": 1,
+        "correct": 1,
+        "accuracy": 1.0,
+        "ci_low": 0.2065493117918027,
+        "ci_high": 1.0
+      },
+      "Social Sciences": {
+        "total": 2,
+        "correct": 2,
+        "accuracy": 1.0,
+        "ci_low": 0.3423802239546494,
+        "ci_high": 1.0
+      }
+    },
+    "by_cultural_sensitivity": {
+      "CA": {
+        "total": 2,
+        "correct": 2,
+        "accuracy": 1.0,
+        "ci_low": 0.3423802239546494,
+        "ci_high": 1.0
+      },
+      "CS": {
+        "total": 2,
+        "correct": 2,
+        "accuracy": 1.0,
+        "ci_low": 0.3423802239546494,
+        "ci_high": 1.0
+      }
+    },
+    "invalid": 0,
+    "errors": 0,
+    "mean_latency_s": 5.029,
+    "stopped": true
+  },
+  "results": [
+    {
+      "index": 2,
+      "sample_id": "business_ethics/test/74",
+      "subject": "business_ethics",
+      "subject_category": "Business",
+      "cultural_sensitivity_label": "CS",
+      "expected": "B",
+      "predicted": "B",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 5.608,
+      "error": null,
+      "reply": "B"
+    },
+    {
+      "index": 3,
+      "sample_id": "sociology/test/168",
+      "subject": "sociology",
+      "subject_category": "Social Sciences",
+      "cultural_sensitivity_label": "CS",
+      "expected": "A",
+      "predicted": "A",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 5.606,
+      "error": null,
+      "reply": "A"
+    },
+    {
+      "index": 5,
+      "sample_id": "high_school_statistics/test/191",
+      "subject": "high_school_statistics",
+      "subject_category": "STEM",
+      "cultural_sensitivity_label": "CA",
+      "expected": "A",
+      "predicted": "A",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 2.758,
+      "error": null,
+      "reply": "A"
+    },
+    {
+      "index": 6,
+      "sample_id": "high_school_psychology/test/404",
+      "subject": "high_school_psychology",
+      "subject_category": "Social Sciences",
+      "cultural_sensitivity_label": "CA",
+      "expected": "D",
+      "predicted": "D",
+      "correct": true,
+      "invalid": false,
+      "latency_s": 6.143,
+      "error": null,
+      "reply": "D"
+    }
+  ]
+}
